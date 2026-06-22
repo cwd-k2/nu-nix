@@ -33,7 +33,7 @@ With flakes:
 
 ```nix
 {
-  inputs.nu-nix.url = "github:YOUR_USER/nu-nix";
+  inputs.nu-nix.url = "github:cwd-k2/nu-nix";
 
   outputs = { nixpkgs, nu-nix, ... }: {
     nixosConfigurations.my-host = nixpkgs.lib.nixosSystem {
@@ -72,7 +72,7 @@ For a local checkout:
 This installs `nu-nix` and `nu-bash`, but it does not change your login shell:
 
 ```sh
-nix profile install github:YOUR_USER/nu-nix
+nix profile install github:cwd-k2/nu-nix
 ```
 
 For login-shell integration, prefer the NixOS module.
