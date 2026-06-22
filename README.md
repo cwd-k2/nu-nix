@@ -76,10 +76,3 @@ nix profile install github:cwd-k2/nu-nix
 ```
 
 For login-shell integration, prefer the NixOS module.
-
-## Why not an install script?
-
-For NixOS, the cleaner practice is to expose a package and a NixOS module from
-the flake, then import the module from your system configuration. A shell
-installer that edits `/etc/nixos` would be less reproducible and harder to
-review.
