@@ -1,73 +1,18 @@
 # nu-nix
 
-Small helpers for using Nushell with Nix and NixOS-WSL.
+Nushell and Nix integration for NixOS.
 
-`nu-nix` provides two binaries:
+Provides two things:
 
-- **`nu-bash`** — login-shell compatibility wrapper. Delegates `-c`/`-lc` and
-  other argument-based invocations to Bash (needed by tools like Zed, ssh, and
-  WSL launchers), while starting Nushell for human interactive terminals.
-- **`nu-nix`** — subcommand dispatcher that bridges Nix and Nushell: some
-  subcommands replace Bash with Nushell as the interactive shell, others parse
-  Nix JSON output into Nushell tables. Unknown subcommands fall through to the
-  underlying `nix` CLI or a `nix-*` binary.
+- **`nu-bash`** — login-shell compatibility wrapper that starts Nushell for
+  interactive terminals while delegating script/argument invocations to Bash.
+  Needed by tools that call the login shell directly (Zed, ssh, WSL launchers,
+  PAM, `nix develop`, …).
 
-## Commands
+- **`nu-nix` Nushell module** — structured Nix commands and Nix ↔ Nu value
+  converters, loaded with `use nu-nix *`.
 
-```
-nu-nix --help
-```
-
-### Nushell entry points
-
-Enter a shell environment with Nushell instead of Bash:
-
-```sh
-nu-nix develop               # nix develop → nu
-nu-nix develop .#default     # with explicit flake output
-nu-nix shell nixpkgs#jq      # nix shell → nu
-nu-nix nix-shell -p jq       # legacy nix-shell → nu
-```
-
-### Structured output (JSON → nu table)
-
-Parse Nix JSON output directly into Nushell tables:
-
-```sh
-nu-nix build                          # nix build --json → table of output paths
-nu-nix search nixpkgs jq              # nix search --json → package table
-nu-nix path-info /nix/store/…        # nix path-info --json → store path details
-nu-nix print-dev-env                  # nix print-dev-env --json → env var table
-nu-nix why-depends /nix/store/… /…   # nix why-depends --json → dependency chain
-nu-nix flake show                     # nix flake show --json → output table
-nu-nix flake metadata                 # nix flake metadata --json → flake info
-nu-nix derivation show                # nix derivation show → drv details
-nu-nix profile list                   # nix profile list --json → installed pkgs
-```
-
-### Legacy nix-* wrappers
-
-```sh
-nu-nix nix-build -A hello            # nix-build → list of store paths
-```
-
-### Fallback
-
-Any subcommand not listed above is passed through automatically:
-
-```sh
-nu-nix nix-env -q                    # → exec nix-env -q
-nu-nix nix-store -q --references …  # → exec nix-store -q --references …
-nu-nix log /nix/store/…             # → exec nix log …
-nu-nix copy …                        # → exec nix copy …
-```
-
-Subcommands starting with `nix-` are dispatched to the corresponding `nix-*`
-binary; all others are forwarded to `nix <subcommand>`.
-
-## NixOS Module
-
-With flakes:
+## Setup (NixOS)
 
 ```nix
 {
@@ -79,7 +24,15 @@ With flakes:
       modules = [
         nu-nix.nixosModules.default
         {
+          # Install nu-bash and the nu-nix Nushell module.
           programs.nu-nix.enable = true;
+
+          # Automatically load the module in every Nushell session via the
+          # vendor autoload mechanism — no `use nu-nix *` needed.
+          programs.nu-nix.autoLoad = true;
+
+          # Make nu-bash the login shell for a user.
+          users.users.alice.shell = "${config.programs.nu-nix.package}/bin/nu-bash";
         }
       ];
     };
@@ -87,32 +40,82 @@ With flakes:
 }
 ```
 
-For a local checkout:
+For a local checkout, see [`examples/nixos.nix`](examples/nixos.nix).
 
-```nix
-{
-  imports = [
-    /path/to/nu-nix/modules/nu-nix.nix
-  ];
+## Usage
 
-  programs.nu-nix.enable = true;
-}
+With `autoLoad = true`, all commands are available automatically in
+every Nushell session — no `use nu-nix *` needed.
+
+Without `autoLoad` (but with `programs.nushell.enable = true`), the
+module directory is added to `$env.NU_LIB_DIRS` so you can load it by name:
+
+```nushell
+use nu-nix *
 ```
 
-The module registers `nu-bash` as a recognised login shell and installs
-`nu-nix` system-wide. To use `nu-bash` as your login shell, set it explicitly
-in your configuration:
+### Shell entry
 
-```nix
-users.users.alice.shell = "${config.programs.nu-nix.package}/bin/nu-bash";
+Enter a Nix environment with Nushell as the interactive shell:
+
+```nushell
+nu-nix develop                  # nix develop → nushell
+nu-nix develop .#default        # explicit flake output
+nu-nix shell nixpkgs#jq         # nix shell → nushell
+nu-nix nix-shell -p jq          # legacy nix-shell → nushell
 ```
 
-## Package-Only Install
+### Structured data commands
 
-This installs `nu-nix` and `nu-bash`, but it does not change your login shell:
+These return Nu tables and records — fully composable in pipelines:
+
+```nushell
+nu-nix build                            # → table of output paths
+nu-nix search nixpkgs jq               # → package table
+nu-nix path-info /nix/store/…          # → store path details
+nu-nix print-dev-env                    # → env var table
+nu-nix why-depends /nix/store/… /…     # → dependency chain
+nu-nix flake show                       # → flake output table
+nu-nix flake metadata                   # → flake info record
+nu-nix derivation show                  # → derivation details table
+nu-nix profile list                     # → installed packages table
+```
+
+Because these are module functions (not an external binary), their output
+flows as Nu values through the pipeline:
+
+```nushell
+nu-nix search nixpkgs python | where version >= "3.11" | to nix
+nu-nix profile list | select name | each { get storePaths } | flatten
+nu-nix flake show | where type == "packages" and system == "x86_64-linux"
+```
+
+### Nix ↔ Nu value conversion
+
+```nushell
+# Evaluate a Nix expression and return a Nu value
+"{ x = 1 + 1; }" | from nix            # => {x: 2}
+from nix nixpkgs#hello.meta             # => {broken: false, …}
+from nix --file ./config.nix
+
+# Serialize a Nu value to Nix expression syntax
+{enable: true, port: 8080} | to nix
+nu-nix profile list | select name | to nix | save packages.nix
+```
+
+For detailed conversion examples, see [`examples/usage.nu`](examples/usage.nu).
+
+## Package-only install
 
 ```sh
 nix profile install github:cwd-k2/nu-nix
+```
+
+Then add to your Nushell config manually:
+
+```nushell
+# ~/.config/nushell/config.nu
+$env.NU_LIB_DIRS = ($env.NU_LIB_DIRS? | default [] | append "/path/to/share/nushell")
 ```
 
 For login-shell integration, prefer the NixOS module.

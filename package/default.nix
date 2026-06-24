@@ -1,11 +1,10 @@
 {
   bashInteractive,
   lib,
-  nix,
   nushell,
+  runCommand,
   symlinkJoin,
   writeShellApplication,
-  writeTextFile,
 }:
 
 let
@@ -31,27 +30,22 @@ let
     '';
   };
 
-  nuNix = writeTextFile {
-    name = "nu-nix";
-    destination = "/bin/nu-nix";
-    executable = true;
-    text = builtins.replaceStrings
-      [ "@nix@"     "@nushell@"     ]
-      [ "${nix}"    "${nushell}"    ]
-      (builtins.readFile ./scripts/nu-nix.nu);
-  };
+  nuNixModule = runCommand "nu-nix-module" { } ''
+    mkdir -p $out/share/nushell/nu-nix
+    cp ${./scripts/nu-nix/mod.nu}          $out/share/nushell/nu-nix/mod.nu
+    cp ${./scripts/nu-nix/commands.nu}     $out/share/nushell/nu-nix/commands.nu
+    cp ${./scripts/nu-nix/from-nix.nu}     $out/share/nushell/nu-nix/from-nix.nu
+    cp ${./scripts/nu-nix/to-nix.nu}       $out/share/nushell/nu-nix/to-nix.nu
+  '';
 in
 symlinkJoin {
   name = "nu-nix";
-  paths = [
-    nuBash
-    nuNix
-  ];
+  paths = [ nuBash nuNixModule ];
 
   meta = {
-    description = "Small Nushell and Nix integration helpers";
+    description = "Nushell and Nix integration: login-shell wrapper and nu-nix module";
     license = lib.licenses.mit;
-    mainProgram = "nu-nix";
+    mainProgram = "nu-bash";
     platforms = lib.platforms.linux;
   };
 }
