@@ -1,9 +1,11 @@
 # nu-nix — Nix integration for Nushell.
 #
-# Provides two kinds of commands:
+# Provides three kinds of commands:
 #
 #   nu-nix <subcommand>  — structured Nix commands returning Nu tables/records
 #                          (develop, shell, build, search, flake show, …)
+#
+#   nu-nix-shell / nu-nix-build  — legacy nix-* wrappers
 #
 #   from nix / to nix   — pipeline primitives for Nix ↔ Nu value conversion
 #

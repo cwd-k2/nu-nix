@@ -61,7 +61,7 @@ Enter a Nix environment with Nushell as the interactive shell:
 nu-nix develop                  # nix develop → nushell
 nu-nix develop .#default        # explicit flake output
 nu-nix shell nixpkgs#jq         # nix shell → nushell
-nu-nix nix-shell -p jq          # legacy nix-shell → nushell
+nu-nix-shell -p jq              # legacy nix-shell → nushell
 ```
 
 ### Structured data commands

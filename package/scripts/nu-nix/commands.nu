@@ -4,7 +4,7 @@
 # `nix` CLI.  After `use nu-nix *` these become first-class Nu pipeline
 # commands that return tables and records rather than text.
 #
-# Shell-entry commands (develop / shell / nix-shell) exec into a new Nushell
+# Shell-entry commands (develop / shell) exec into a new Nushell
 # session inside the Nix environment; they do not return.
 #
 # Raw nix pass-through:  ^nix <subcommand>  (external, text output)
