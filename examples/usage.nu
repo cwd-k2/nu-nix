@@ -1,9 +1,11 @@
 # nu-nix usage examples
 #
-# Prerequisites: autoLoad = true in your NixOS config, then in Nushell:
-#   use nu-nix *
+# Prerequisites: autoLoad = true in your NixOS config (vendor autoload sources
+# the module at startup automatically), or load manually:
 #
-# Or for a quick try without installing:
+#   use /run/current-system/sw/share/nushell/nu-nix *
+#
+# For development / without installing:
 #   use /path/to/package/scripts/nu-nix/mod.nu *
 
 # ── from nix ──────────────────────────────────────────────────────────────────
@@ -19,20 +21,10 @@ from nix nixpkgs#hello.meta
 # Evaluate a .nix file
 from nix --file ./myconfig.nix
 
-# Use Nix builtins to query nixpkgs data
-"builtins.filter (p: p.broken or false) (builtins.attrValues (import <nixpkgs> {}).meta)" | from nix
-
 # Pipe the result into Nu for further processing
 from nix nixpkgs#hello.meta
   | select description license homepage
   | print
-
-# Search and filter packages (combine with nu-nix CLI)
-nu-nix search nixpkgs "json"
-  | where version >= "2"
-  | sort-by pname
-  | select pname version description
-  | first 5
 
 
 # ── to nix ────────────────────────────────────────────────────────────────────
@@ -68,6 +60,26 @@ date now | to nix
 500ms     | to nix    # => 500000000
 
 
+# ── nu-nix commands ───────────────────────────────────────────────────────────
+# These return Nu values (tables/records), fully composable in pipelines.
+
+nu-nix search nixpkgs "python"
+  | where version >= "3.11"
+  | select pname version description
+
+nu-nix build nixpkgs#hello
+  | get path
+
+nu-nix flake show .
+  | where type == "packages" and system == "x86_64-linux"
+
+nu-nix profile list
+  | select name
+
+# Pipeline composition: search results directly into to nix
+nu-nix search nixpkgs "python" | first 5 | select pname version | to nix
+
+
 # ── roundtrip ─────────────────────────────────────────────────────────────────
 
 # from nix → to nix → from nix recovers the original value
@@ -84,8 +96,7 @@ let users = [
   {name: "bob",   groups: ["audio"],          shell: "bash"}
 ]
 
-let nixos-users = (
-  $users
+$users
   | each {|u|
       {
         ($u.name): {
@@ -96,9 +107,8 @@ let nixos-users = (
       }
     }
   | into record
-)
-
-$nixos-users | to nix | save users-generated.nix
+  | to nix
+  | save users-generated.nix
 
 # Inspect flake.lock inputs as a Nu table
 ^nix flake metadata --json

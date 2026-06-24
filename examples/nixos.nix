@@ -12,20 +12,15 @@
 #     };
 #   };
 
-{ config, lib, pkgs, ... }:
+{ config, lib, ... }:
 
 {
   # Install nu-bash (login-shell wrapper) and the nu-nix Nushell module.
   programs.nu-nix.enable = true;
 
-  # Add the module directory to $env.NU_LIB_DIRS so that
-  #   use nu-nix *
-  # works in any Nushell session without a full path.
-  # Requires programs.nushell.enable = true.
+  # Install a vendor autoload file so Nushell sources the module automatically
+  # at startup — no `use nu-nix *` needed in every session.
   programs.nu-nix.autoLoad = true;
-
-  # Enable the system-level Nushell configuration (required by autoLoad).
-  programs.nushell.enable = true;
 
   # Make nu-bash the login shell for a user.
   # nu-bash routes interactive terminals to Nushell and everything else to Bash,

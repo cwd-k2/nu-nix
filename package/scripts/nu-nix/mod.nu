@@ -9,14 +9,16 @@
 #
 # Setup (NixOS, via the nu-nix module):
 #
-#   programs.nu-nix.enable = true;
-#   programs.nu-nix.autoLoad = true;
+#   programs.nu-nix.enable   = true;   # install nu-bash and this module
+#   programs.nu-nix.autoLoad = true;   # vendor-autoload at startup (recommended)
 #
-# After rebuilding, open a new Nushell session and run:
+# With autoLoad, the module is sourced automatically — nothing else needed.
 #
-#   use nu-nix *
+# Without autoLoad, load manually with the full path:
 #
-# Manual use (development):
+#   use /run/current-system/sw/share/nushell/nu-nix *
+#
+# Development (without installing):
 #
 #   use /path/to/package/scripts/nu-nix/mod.nu *
 

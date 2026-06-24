@@ -47,11 +47,10 @@ For a local checkout, see [`examples/nixos.nix`](examples/nixos.nix).
 With `autoLoad = true`, all commands are available automatically in
 every Nushell session — no `use nu-nix *` needed.
 
-Without `autoLoad` (but with `programs.nushell.enable = true`), the
-module directory is added to `$env.NU_LIB_DIRS` so you can load it by name:
+Without `autoLoad`, load the module manually with the full store path:
 
 ```nushell
-use nu-nix *
+use /run/current-system/sw/share/nushell/nu-nix *
 ```
 
 ### Shell entry
