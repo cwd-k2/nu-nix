@@ -1,4 +1,9 @@
-{ config, lib, pkgs, ... }:
+{
+  config,
+  lib,
+  pkgs,
+  ...
+}:
 
 let
   cfg = config.programs.nu-nix;
@@ -32,27 +37,36 @@ in
     '';
   };
 
-  config = lib.mkIf cfg.enable (lib.mkMerge [
-    {
-      environment.systemPackages = [ pkgs.nushell cfg.package ];
+  config = lib.mkIf cfg.enable (
+    lib.mkMerge [
+      {
+        environment.systemPackages = [
+          pkgs.nushell
+          cfg.package
+        ];
 
-      # Register nu-bash as a valid login shell.
-      environment.shells = [
-        "${cfg.package}/bin/nu-bash"
-        pkgs.bashInteractive
-      ];
-    }
+        # Make the module and vendor autoload files visible in the system
+        # profile, which Nushell searches via XDG_DATA_DIRS.
+        environment.pathsToLink = [ "/share/nushell" ];
 
-    (lib.mkIf cfg.autoLoad {
-      # Install a vendor autoload file so Nushell sources the module
-      # automatically at startup — no `use nu-nix *` needed at all.
-      environment.systemPackages = [
-        (pkgs.runCommand "nu-nix-autoload" { } ''
-          mkdir -p $out/share/nushell/vendor/autoload
-          echo "use ${cfg.package}/share/nushell/nu-nix *" \
-            > $out/share/nushell/vendor/autoload/nu-nix.nu
-        '')
-      ];
-    })
-  ]);
+        # Register nu-bash as a valid login shell.
+        environment.shells = [
+          "${cfg.package}/bin/nu-bash"
+          pkgs.bashInteractive
+        ];
+      }
+
+      (lib.mkIf cfg.autoLoad {
+        # Install a vendor autoload file so Nushell sources the module
+        # automatically at startup — no `use nu-nix *` needed at all.
+        environment.systemPackages = [
+          (pkgs.runCommand "nu-nix-autoload" { } ''
+            mkdir -p $out/share/nushell/vendor/autoload
+            echo "use ${cfg.package}/share/nushell/nu-nix *" \
+              > $out/share/nushell/vendor/autoload/nu-nix.nu
+          '')
+        ];
+      })
+    ]
+  );
 }
