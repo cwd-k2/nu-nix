@@ -79,10 +79,7 @@ With flakes:
       modules = [
         nu-nix.nixosModules.default
         {
-          programs.nu-nix = {
-            enable = true;
-            loginShellUser = "nixos";
-          };
+          programs.nu-nix.enable = true;
         }
       ];
     };
@@ -98,10 +95,7 @@ For a local checkout:
     /path/to/nu-nix/modules/nu-nix.nix
   ];
 
-  programs.nu-nix = {
-    enable = true;
-    loginShellUser = "nixos";
-  };
+  programs.nu-nix.enable = true;
 }
 ```
 
