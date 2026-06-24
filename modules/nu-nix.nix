@@ -14,35 +14,17 @@ in
       description = "Package that provides nu-nix and nu-bash.";
     };
 
-    loginShellUser = lib.mkOption {
-      type = lib.types.nullOr lib.types.str;
-      default = null;
-      example = "nixos";
-      description = ''
-        User whose login shell should be set to nu-bash. Set to null to only
-        install the commands and register nu-bash as an allowed shell.
-      '';
-    };
   };
 
-  config = lib.mkIf cfg.enable (
-    lib.mkMerge [
-      {
-        environment.systemPackages = [
-          pkgs.nushell
-          cfg.package
-        ];
+  config = lib.mkIf cfg.enable {
+    environment.systemPackages = [
+      pkgs.nushell
+      cfg.package
+    ];
 
-        environment.shells = [
-          "${cfg.package}/bin/nu-bash"
-          pkgs.bashInteractive
-        ];
-      }
-
-      (lib.mkIf (cfg.loginShellUser != null) {
-        users.users.${cfg.loginShellUser}.shell =
-          lib.mkForce "${cfg.package}/bin/nu-bash";
-      })
-    ]
-  );
+    environment.shells = [
+      "${cfg.package}/bin/nu-bash"
+      pkgs.bashInteractive
+    ];
+  };
 }

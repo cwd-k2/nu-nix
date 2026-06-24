@@ -105,9 +105,13 @@ For a local checkout:
 }
 ```
 
-The module adds `nu-bash` as a recognised login shell and optionally sets it as
-the default shell for the specified user. `nu-nix` is also installed
-system-wide.
+The module registers `nu-bash` as a recognised login shell and installs
+`nu-nix` system-wide. To use `nu-bash` as your login shell, set it explicitly
+in your configuration:
+
+```nix
+users.users.alice.shell = "${config.programs.nu-nix.package}/bin/nu-bash";
+```
 
 ## Package-Only Install
 
