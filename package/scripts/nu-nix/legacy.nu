@@ -5,7 +5,7 @@
 
 # Enter a legacy nix-shell running Nushell.
 export def --wrapped "nu-nix-shell" [...rest: string] {
-  exec "nix-shell" ...$rest "--run" $nu.current-exe
+  ^nix-shell ...$rest --run $nu.current-exe
 }
 
 # Build using legacy nix-build; return output paths as a list.

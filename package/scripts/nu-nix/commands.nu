@@ -4,8 +4,8 @@
 # `nix` CLI.  After `use nu-nix *` these become first-class Nu pipeline
 # commands that return tables and records rather than text.
 #
-# Shell-entry commands (develop / shell) exec into a new Nushell
-# session inside the Nix environment; they do not return.
+# Shell-entry commands (develop / shell) start a child Nushell session inside
+# the Nix environment and return to the current session when it exits.
 #
 # Raw nix pass-through:  ^nix <subcommand>  (external, text output)
 # Nu-integrated:         nu-nix <subcommand> (this module, Nu values)
@@ -18,16 +18,16 @@ def flake-description [info: any]: nothing -> string {
   } else { "" }
 }
 
-# ── Shell entry — exec into a Nix environment with Nushell ───────────────────
+# ── Shell entry — enter a Nix environment with Nushell ───────────────────────
 
 # Enter a nix develop shell running Nushell.
 export def --wrapped "nu-nix develop" [...rest: string] {
-  exec "nix" "develop" ...$rest "--command" $nu.current-exe
+  ^nix develop ...$rest --command $nu.current-exe
 }
 
 # Enter a nix shell running Nushell.
 export def --wrapped "nu-nix shell" [...rest: string] {
-  exec "nix" "shell" ...$rest "--command" $nu.current-exe
+  ^nix shell ...$rest --command $nu.current-exe
 }
 
 # ── Build ─────────────────────────────────────────────────────────────────────

@@ -64,6 +64,8 @@ nu-nix shell nixpkgs#jq         # nix shell → nushell
 nu-nix-shell -p jq              # legacy nix-shell → nushell
 ```
 
+Exiting the child Nushell returns to the current Nushell session.
+
 ### Structured data commands
 
 These return Nu tables and records — fully composable in pipelines:
