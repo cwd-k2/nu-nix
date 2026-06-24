@@ -29,7 +29,7 @@ in
       available without any manual <literal>use nu-nix *</literal>.
 
       When disabled, the module files are still installed; users can load
-      them manually:
+      them manually with a full path:
       <literal>use ${cfg.package}/share/nushell/nu-nix *</literal>
     '';
   };
@@ -43,14 +43,6 @@ in
         "${cfg.package}/bin/nu-bash"
         pkgs.bashInteractive
       ];
-
-      # Add the module directory to NU_LIB_DIRS so that
-      #   use nu-nix *
-      # resolves by name without a full path.
-      # Requires programs.nushell.enable = true.
-      programs.nushell.extraConfig = ''
-        $env.NU_LIB_DIRS = ($env.NU_LIB_DIRS? | default [] | append "${cfg.package}/share/nushell")
-      '';
     }
 
     (lib.mkIf cfg.autoLoad {
