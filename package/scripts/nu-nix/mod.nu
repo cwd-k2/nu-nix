@@ -25,3 +25,4 @@
 export use commands.nu *
 export use from-nix.nu *
 export use to-nix.nu *
+export use legacy.nu *

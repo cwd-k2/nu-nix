@@ -30,11 +30,6 @@ export def --wrapped "nu-nix shell" [...rest: string] {
   exec "nix" "shell" ...$rest "--command" $nu.current-exe
 }
 
-# Enter a legacy nix-shell running Nushell.
-export def --wrapped "nu-nix nix-shell" [...rest: string] {
-  exec "nix-shell" ...$rest "--run" $nu.current-exe
-}
-
 # ── Build ─────────────────────────────────────────────────────────────────────
 
 # Build a derivation; return output paths as a table.
@@ -47,11 +42,6 @@ export def --wrapped "nu-nix build" [...rest: string] {
       | insert drvPath $r.drvPath
     }
   | flatten
-}
-
-# Build using legacy nix-build; return output paths as a list.
-export def --wrapped "nu-nix nix-build" [...rest: string] {
-  ^nix-build ...$rest | lines
 }
 
 # ── Search and inspect ────────────────────────────────────────────────────────
