@@ -36,6 +36,7 @@ let
     cp ${./scripts/nu-nix/commands.nu}     $out/share/nushell/nu-nix/commands.nu
     cp ${./scripts/nu-nix/from-nix.nu}     $out/share/nushell/nu-nix/from-nix.nu
     cp ${./scripts/nu-nix/to-nix.nu}       $out/share/nushell/nu-nix/to-nix.nu
+    cp ${./scripts/nu-nix/legacy.nu}       $out/share/nushell/nu-nix/legacy.nu
   '';
 in
 symlinkJoin {
