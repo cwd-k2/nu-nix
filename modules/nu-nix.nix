@@ -12,25 +12,23 @@ in
       default = pkgs.callPackage ../package { };
       defaultText = lib.literalExpression "pkgs.callPackage ../package { }";
       description = ''
-        The nu-nix package.  Provides <literal>nu-bash</literal> (login-shell
-        wrapper) and the <literal>nu-nix</literal> Nushell module under
-        <literal>share/nushell/nu-nix/</literal>.
+        The nu-nix package. Provides `nu-bash` (login-shell wrapper) and
+        the `nu-nix` Nushell module under `share/nushell/nu-nix/`.
       '';
     };
 
     autoLoad = lib.mkEnableOption ''
-      Automatically load the <literal>nu-nix</literal> module in every
-      Nushell session via the vendor autoload mechanism.
+      Automatically load the `nu-nix` module in every Nushell session via
+      the vendor autoload mechanism.
 
       When enabled, a file is installed to
-      <literal>share/nushell/vendor/autoload/nu-nix.nu</literal> which
-      Nushell sources at startup, making all <literal>nu-nix</literal>
-      commands, <literal>from nix</literal>, and <literal>to nix</literal>
-      available without any manual <literal>use nu-nix *</literal>.
+      `share/nushell/vendor/autoload/nu-nix.nu` which Nushell sources at
+      startup, making all `nu-nix` commands, `from nix`, and `to nix`
+      available without any manual `use nu-nix *`.
 
       When disabled, the module files are still installed; users can load
       them manually with a full path:
-      <literal>use ${cfg.package}/share/nushell/nu-nix *</literal>
+      `use ${cfg.package}/share/nushell/nu-nix *`
     '';
   };
 

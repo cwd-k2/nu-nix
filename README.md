@@ -110,11 +110,11 @@ For detailed conversion examples, see [`examples/usage.nu`](examples/usage.nu).
 nix profile install github:cwd-k2/nu-nix
 ```
 
-Then add to your Nushell config manually:
+Then load the module manually in your Nushell config:
 
 ```nushell
 # ~/.config/nushell/config.nu
-$env.NU_LIB_DIRS = ($env.NU_LIB_DIRS? | default [] | append "/path/to/share/nushell")
+use ~/.nix-profile/share/nushell/nu-nix *
 ```
 
 For login-shell integration, prefer the NixOS module.

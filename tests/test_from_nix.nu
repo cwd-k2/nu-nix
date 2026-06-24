@@ -371,7 +371,7 @@ def _run [name: string, f: closure]: nothing -> bool {
   }
 }
 
-let $_results = [
+let _results = [
   # from nix: expression evaluation
   (_run "from nix int expr"            { test from nix int expr })
   (_run "from nix bool true"           { test from nix bool true })
@@ -435,7 +435,7 @@ let $_results = [
   (_run "from nix --file"              { test from nix --file })
 ]
 
-let $_n_pass = ($_results | where { $in } | length)
-let $_n_fail  = ($_results | where { not $in } | length)
+let _n_pass = ($_results | where { $in } | length)
+let _n_fail  = ($_results | where { not $in } | length)
 print $"\n($_n_pass) passed, ($_n_fail) failed"
 if $_n_fail > 0 { exit 1 }
