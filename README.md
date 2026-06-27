@@ -66,6 +66,24 @@ nu-nix-shell -p jq              # legacy nix-shell → nushell
 
 Exiting the child Nushell returns to the current Nushell session.
 
+### Legacy nix-* wrappers
+
+Thin wrappers for the classic `nix-*` CLI tools, with minor Nu enhancements
+where useful:
+
+```nushell
+nu-nix-build -A hello           # → list of output paths
+nu-nix-env -iA nixpkgs.jq      # manage user environment
+nu-nix-channel list             # → name/url table
+nu-nix-channel --update         # pass-through
+nu-nix-collect-garbage -d       # remove old generations + GC
+nu-nix-instantiate --eval --expr '1 + 1'
+nu-nix-store --query --references /nix/store/…
+nu-nix-prefetch-url https://…   # → trimmed hash string
+nu-nix-hash --type sha256 ./file
+nu-nix-copy-closure --to user@host /nix/store/…
+```
+
 ### Structured data commands
 
 These return Nu tables and records — fully composable in pipelines:
