@@ -4,6 +4,7 @@
   nushell,
   runCommand,
   symlinkJoin,
+  withAutoload ? false,
   writeShellApplication,
 }:
 
@@ -38,10 +39,20 @@ let
     cp ${./scripts/nu-nix/to-nix.nu}       $out/share/nushell/nu-nix/to-nix.nu
     cp ${./scripts/nu-nix/legacy.nu}       $out/share/nushell/nu-nix/legacy.nu
   '';
+
+  nuNixAutoload = runCommand "nu-nix-autoload" { } ''
+    mkdir -p $out/share/nushell/vendor/autoload
+    echo "use ${nuNixModule}/share/nushell/nu-nix *" \
+      > $out/share/nushell/vendor/autoload/nu-nix.nu
+  '';
 in
 symlinkJoin {
-  name = "nu-nix";
-  paths = [ nuBash nuNixModule ];
+  name = if withAutoload then "nu-nix-with-autoload" else "nu-nix";
+  paths = [
+    nuBash
+    nuNixModule
+  ]
+  ++ lib.optional withAutoload nuNixAutoload;
 
   meta = {
     description = "Nushell and Nix integration: login-shell wrapper and nu-nix module";

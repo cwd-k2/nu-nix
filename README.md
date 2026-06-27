@@ -1,6 +1,6 @@
 # nu-nix
 
-Nushell and Nix integration for NixOS.
+Nushell and Nix integration.
 
 Provides two things:
 
@@ -23,7 +23,7 @@ Provides two things:
       system = "x86_64-linux";
       modules = [
         nu-nix.nixosModules.default
-        {
+        ({ config, ... }: {
           # Install nu-bash and the nu-nix Nushell module.
           programs.nu-nix.enable = true;
 
@@ -33,7 +33,7 @@ Provides two things:
 
           # Make nu-bash the login shell for a user.
           users.users.alice.shell = "${config.programs.nu-nix.package}/bin/nu-bash";
-        }
+        })
       ];
     };
   };
@@ -41,6 +41,23 @@ Provides two things:
 ```
 
 For a local checkout, see [`examples/nixos.nix`](examples/nixos.nix).
+
+## Setup (Home Manager)
+
+```nix
+{
+  imports = [ inputs.nu-nix.homeManagerModules.default ];
+
+  programs.nu-nix.enable = true;
+
+  # Automatically load the module in every Nushell session for this user.
+  programs.nu-nix.autoLoad = true;
+}
+```
+
+The Home Manager module installs the package and, when `autoLoad` is enabled,
+writes `nushell/autoload/nu-nix.nu` in the user's XDG config. It does not
+register `nu-bash` as a login shell; use the NixOS module for that.
 
 ## Usage
 
@@ -135,6 +152,12 @@ Then load the module manually in your Nushell config:
 ```nushell
 # ~/.config/nushell/config.nu
 use ~/.nix-profile/share/nushell/nu-nix *
+```
+
+For profile-level autoload, install the explicit autoload variant:
+
+```sh
+nix profile install github:cwd-k2/nu-nix#with-autoload
 ```
 
 For login-shell integration, prefer the NixOS module.
