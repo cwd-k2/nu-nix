@@ -44,11 +44,15 @@
             inherit system;
             modules = [
               self.nixosModules.default
-              {
+              ({ config, ... }: {
                 programs.nu-nix.enable = true;
                 programs.nu-nix.autoLoad = true;
+                users.users.nu-nix-test = {
+                  isNormalUser = true;
+                  shell = config.programs.nu-nix.package;
+                };
                 system.stateVersion = "26.05";
-              }
+              })
             ];
           };
           testSystemNoAutoload = nixpkgs.lib.nixosSystem {
@@ -101,6 +105,7 @@
             test -f ${testSystem.config.system.path}/share/nushell/vendor/autoload/nu-nix.nu
             grep -F '${pkg}/share/nushell/nu-nix' \
               ${testSystem.config.system.path}/share/nushell/vendor/autoload/nu-nix.nu
+            test '${testSystem.config.users.users.nu-nix-test.shell.shellPath}' = '/bin/nu-bash'
             touch $out
           '';
 

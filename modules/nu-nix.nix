@@ -51,7 +51,7 @@ in
 
         # Register nu-bash as a valid login shell.
         environment.shells = [
-          "${cfg.package}/bin/nu-bash"
+          cfg.package
           pkgs.bashInteractive
         ];
       }

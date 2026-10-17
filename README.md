@@ -32,7 +32,7 @@ Provides two things:
           programs.nu-nix.autoLoad = true;
 
           # Make nu-bash the login shell for a user.
-          users.users.alice.shell = "${config.programs.nu-nix.package}/bin/nu-bash";
+          users.users.alice.shell = config.programs.nu-nix.package;
         })
       ];
     };

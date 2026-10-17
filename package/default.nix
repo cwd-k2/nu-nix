@@ -54,6 +54,11 @@ symlinkJoin {
   ]
   ++ lib.optional withAutoload nuNixAutoload;
 
+  # Let NixOS treat this derivation as a login-shell package.  In particular,
+  # users.users.<name>.shell can then point at the package and NixOS records
+  # the stable /run/current-system/sw path in /etc/passwd.
+  passthru.shellPath = "/bin/nu-bash";
+
   meta = {
     description = "Nushell and Nix integration: login-shell wrapper and nu-nix module";
     license = lib.licenses.mit;

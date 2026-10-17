@@ -12,7 +12,7 @@
 #     };
 #   };
 
-{ config, lib, ... }:
+{ config, ... }:
 
 {
   # Install nu-bash (login-shell wrapper) and the nu-nix Nushell module.
@@ -27,6 +27,6 @@
   # keeping compatibility with PAM, SSH, WSL launchers, and nix itself.
   users.users.alice = {
     isNormalUser = true;
-    shell = lib.getExe' config.programs.nu-nix.package "nu-bash";
+    shell = config.programs.nu-nix.package;
   };
 }
