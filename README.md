@@ -208,8 +208,10 @@ Loading the resulting module with `use host-context *` exports `$host` and
 
 `lib.mkNuEnvModule` produces a module with an `export-env` block. It can set
 typed Nushell environment values and update list-valued path variables while
-keeping the requested entries unique. Set `autoLoad = true` to expose it through
-Nushell's vendor autoload convention.
+keeping the requested entries unique. Existing occurrences of those entries are
+moved to the requested side; the order and duplicates of unrelated existing
+entries are preserved. Set `autoLoad = true` to expose it through Nushell's
+vendor autoload convention.
 
 ```nix
 packages.x86_64-linux.session-env = nu-nix.lib.mkNuEnvModule {

@@ -10,5 +10,5 @@ assert equal $nested {
 assert equal $empty {}
 assert equal $env.NU_NIX_GENERATED "configured"
 assert equal $env.NU_NIX_TYPED [1 2 3]
-assert equal $env.NU_NIX_TEST_PATH ["/first", "/shared", "/existing"]
-assert equal $env.NU_NIX_APPEND_PATH ["/existing", "/shared", "/last"]
+assert equal $env.NU_NIX_TEST_PATH ["/first", "/shared", "/existing", "/duplicate", "/duplicate"]
+assert equal $env.NU_NIX_APPEND_PATH ["/existing", "/duplicate", "/duplicate", "/shared", "/last"]

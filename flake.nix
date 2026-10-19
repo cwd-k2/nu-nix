@@ -84,19 +84,25 @@
               ];
               NU_NIX_TEST_PATH = [
                 "/existing"
+                "/duplicate"
+                "/duplicate"
                 "/shared"
               ];
               NU_NIX_APPEND_PATH = [
                 "/existing"
+                "/duplicate"
+                "/duplicate"
                 "/shared"
               ];
             };
             prependPath.NU_NIX_TEST_PATH = [
               "/first"
               "/shared"
+              "/first"
             ];
             appendPath.NU_NIX_APPEND_PATH = [
               "/shared"
+              "/last"
               "/last"
             ];
           };

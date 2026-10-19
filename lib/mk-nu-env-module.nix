@@ -39,11 +39,13 @@ let
     operation: variable: entries:
     let
       current = "($env | get --optional ${builtins.toJSON variable} | default [])";
+      requested = renderNuValue entries;
+      remaining = "(${current} | where {|entry| $entry not-in ${requested}})";
       result =
         if operation == "prepend" then
-          "(${renderNuValue entries} | append ${current} | uniq)"
+          "(${requested} | uniq | append ${remaining})"
         else
-          "(${current} | append ${renderNuValue entries} | uniq)";
+          "(${remaining} | append (${requested} | uniq))";
     in
     "load-env {${builtins.toJSON variable}: ${result}}";
   source = ''
