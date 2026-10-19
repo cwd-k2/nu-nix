@@ -1,14 +1,15 @@
 {
   bashInteractive,
+  callPackage,
   lib,
   nushell,
-  runCommand,
   symlinkJoin,
   withAutoload ? false,
   writeShellApplication,
 }:
 
 let
+  mkNuModule = callPackage ../lib/mk-nu-module.nix { };
   nuBash = writeShellApplication {
     name = "nu-bash";
     text = ''
@@ -31,28 +32,18 @@ let
     '';
   };
 
-  nuNixModule = runCommand "nu-nix-module" { } ''
-    mkdir -p $out/share/nushell/nu-nix
-    cp ${./scripts/nu-nix/mod.nu}          $out/share/nushell/nu-nix/mod.nu
-    cp ${./scripts/nu-nix/commands.nu}     $out/share/nushell/nu-nix/commands.nu
-    cp ${./scripts/nu-nix/from-nix.nu}     $out/share/nushell/nu-nix/from-nix.nu
-    cp ${./scripts/nu-nix/to-nix.nu}       $out/share/nushell/nu-nix/to-nix.nu
-    cp ${./scripts/nu-nix/legacy.nu}       $out/share/nushell/nu-nix/legacy.nu
-  '';
-
-  nuNixAutoload = runCommand "nu-nix-autoload" { } ''
-    mkdir -p $out/share/nushell/vendor/autoload
-    echo "use ${nuNixModule}/share/nushell/nu-nix *" \
-      > $out/share/nushell/vendor/autoload/nu-nix.nu
-  '';
+  nuNixModule = mkNuModule {
+    name = "nu-nix";
+    src = ./scripts/nu-nix;
+    autoLoad = withAutoload;
+  };
 in
 symlinkJoin {
   name = if withAutoload then "nu-nix-with-autoload" else "nu-nix";
   paths = [
     nuBash
     nuNixModule
-  ]
-  ++ lib.optional withAutoload nuNixAutoload;
+  ];
 
   # Let NixOS treat this derivation as a login-shell package.  In particular,
   # users.users.<name>.shell can then point at the package and NixOS records

@@ -2,7 +2,7 @@
 
 Nushell and Nix integration.
 
-Provides two things:
+Provides three things:
 
 - **`nu-bash`** — login-shell compatibility wrapper that starts Nushell for
   interactive terminals while delegating script/argument invocations to Bash.
@@ -11,6 +11,10 @@ Provides two things:
 
 - **`nu-nix` Nushell module** — structured Nix commands and Nix ↔ Nu value
   converters, loaded with `use nu-nix *`.
+
+- **Nix builders** — `lib.mkNuModule` packages reusable Nushell modules, while
+  `lib.mkNuApplication` builds multi-file applications with pinned modules,
+  runtime commands, and environment.
 
 ## Setup (NixOS)
 
@@ -140,6 +144,84 @@ nu-nix profile list | select name | to nix | save packages.nix
 ```
 
 For detailed conversion examples, see [`examples/usage.nu`](examples/usage.nu).
+
+## Packaging Nushell applications
+
+Package a module directory containing `mod.nu` and optionally expose it through
+Nushell's vendor autoload convention:
+
+```nix
+packages.x86_64-linux.my-module = nu-nix.lib.mkNuModule {
+  inherit pkgs;
+  name = "my-module";
+  src = ./my-module;
+  autoLoad = true;
+};
+```
+
+`lib.mkNuApplication` keeps a Nushell source tree intact, runs it without user
+configuration, and makes the pinned `nu-nix` module available through the
+application's module search path. Additional Nushell module packages must place
+their modules under `share/nushell/`.
+
+```nix
+{
+  packages.x86_64-linux.my-tool = nu-nix.lib.mkNuApplication {
+    inherit pkgs;
+    name = "my-tool";
+    src = ./tool;
+    entrypoint = "main.nu";
+    runtimeInputs = [ pkgs.git ];
+    nuLibraries = [
+      nu-nix.packages.x86_64-linux.default
+      another-nushell-module
+    ];
+    environment.MY_TOOL_MODE = "managed";
+  };
+}
+```
+
+The default `nuLibraries` already contains the matching `nu-nix` package, so it
+can normally be omitted. `nuLibDirs` accepts additional module directories when
+they are not packaged under `share/nushell/`. `extraWrapperArgs` provides an
+escape hatch for `makeWrapper` options.
+
+Nix values can also become exported Nushell constants without running Nushell
+during Nix evaluation. Values may contain JSON-compatible scalars, lists, and
+attribute sets; Nix paths become store paths.
+
+```nix
+packages.x86_64-linux.host-context = nu-nix.lib.mkNuModuleFromValue {
+  inherit pkgs;
+  name = "host-context";
+  values = {
+    host = "workstation";
+    features = [ "audio" "graphics" ];
+  };
+};
+```
+
+Loading the resulting module with `use host-context *` exports `$host` and
+`$features`. Export names must be valid Nushell identifiers.
+
+`lib.mkNuEnvModule` produces a module with an `export-env` block. It can set
+typed Nushell environment values and update list-valued path variables while
+keeping the requested entries unique. Set `autoLoad = true` to expose it through
+Nushell's vendor autoload convention.
+
+```nix
+packages.x86_64-linux.session-env = nu-nix.lib.mkNuEnvModule {
+  inherit pkgs;
+  name = "session-env";
+  autoLoad = true;
+  variables.EDITOR = "nvim";
+  prependPath.PATH = [ "/run/wrappers/bin" ];
+};
+```
+
+`prependPath` and `appendPath` entries must be lists, and a variable cannot use
+both operations. Existing values must also be lists, as Nushell's built-in
+`PATH` value normally is.
 
 ## Package-only install
 

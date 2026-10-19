@@ -14,10 +14,14 @@
       forAllSystems = f: nixpkgs.lib.genAttrs systems (system: f nixpkgs.legacyPackages.${system});
     in
     {
+      lib = import ./lib { inherit self; };
+
       packages = forAllSystems (pkgs: {
         default = pkgs.callPackage ./package { };
         nu-nix = self.packages.${pkgs.stdenv.hostPlatform.system}.default;
-        with-autoload = pkgs.callPackage ./package { withAutoload = true; };
+        with-autoload = pkgs.callPackage ./package {
+          withAutoload = true;
+        };
       });
 
       apps = forAllSystems (pkgs: {
@@ -40,6 +44,58 @@
           system = pkgs.stdenv.hostPlatform.system;
           pkg = self.packages.${system}.default;
           pkgWithAutoload = self.packages.${system}.with-autoload;
+          testApplication = self.lib.mkNuApplication {
+            inherit pkgs;
+            name = "nu-nix-application-test";
+            src = ./tests/application;
+            runtimeInputs = [ pkgs.hello ];
+            environment.NU_NIX_APPLICATION_TEST = "from-nix";
+          };
+          generatedValueModule = self.lib.mkNuModuleFromValue {
+            inherit pkgs;
+            name = "generated-values";
+            values = {
+              answer = 42;
+              empty = { };
+              nested = {
+                enabled = true;
+                items = [
+                  ''quoted "value"''
+                  "line\nbreak"
+                  null
+                ];
+              };
+            };
+          };
+          generatedEnvModule = self.lib.mkNuEnvModule {
+            inherit pkgs;
+            name = "generated-env";
+            autoLoad = true;
+            variables = {
+              NU_NIX_GENERATED = "configured";
+              NU_NIX_TYPED = [
+                1
+                2
+                3
+              ];
+              NU_NIX_TEST_PATH = [
+                "/existing"
+                "/shared"
+              ];
+              NU_NIX_APPEND_PATH = [
+                "/existing"
+                "/shared"
+              ];
+            };
+            prependPath.NU_NIX_TEST_PATH = [
+              "/first"
+              "/shared"
+            ];
+            appendPath.NU_NIX_APPEND_PATH = [
+              "/shared"
+              "/last"
+            ];
+          };
           testSystem = nixpkgs.lib.nixosSystem {
             inherit system;
             modules = [
@@ -91,6 +147,67 @@
           package = pkg;
 
           package-with-autoload = pkgWithAutoload;
+
+          application = pkgs.runCommand "nu-nix-application-test-result" { } ''
+            output=$(${testApplication}/bin/nu-nix-application-test tester)
+            printf '%s\n' "$output" | grep -F '"greeting":"hello tester"'
+            printf '%s\n' "$output" | grep -F '"nix":"{'
+            printf '%s\n' "$output" | grep -F 'enabled = true;'
+            printf '%s\n' "$output" | grep -F '"external":"Hello, world!"'
+            printf '%s\n' "$output" | grep -F '"configured":"from-nix"'
+            touch $out
+          '';
+
+          generated-modules =
+            pkgs.runCommand "nu-nix-generated-modules-test"
+              {
+                nativeBuildInputs = [ pkgs.nushell ];
+              }
+              ''
+                cp ${./tests/generated-modules.nu} generated-modules.nu
+                substituteInPlace generated-modules.nu \
+                  --replace-fail VALUE_MODULE ${generatedValueModule}/share/nushell/generated-values/mod.nu \
+                  --replace-fail ENV_MODULE ${generatedEnvModule}/share/nushell/generated-env/mod.nu
+                test -f ${generatedEnvModule}/share/nushell/vendor/autoload/generated-env.nu
+                nu --no-config-file generated-modules.nu
+                touch $out
+              '';
+
+          generated-module-validation =
+            assert
+              !(builtins.tryEval (
+                (self.lib.mkNuModuleFromValue {
+                  inherit pkgs;
+                  name = "invalid-value-module";
+                  values."invalid.name" = true;
+                }).drvPath
+              )).success;
+            assert
+              !(builtins.tryEval (
+                (self.lib.mkNuEnvModule {
+                  inherit pkgs;
+                  name = "invalid-env-name-module";
+                  variables."invalid.name" = true;
+                }).drvPath
+              )).success;
+            assert
+              !(builtins.tryEval (
+                (self.lib.mkNuEnvModule {
+                  inherit pkgs;
+                  name = "invalid-env-module";
+                  prependPath.PATH = "/not-a-list";
+                }).drvPath
+              )).success;
+            assert
+              !(builtins.tryEval (
+                (self.lib.mkNuEnvModule {
+                  inherit pkgs;
+                  name = "ambiguous-env-module";
+                  prependPath.PATH = [ "/first" ];
+                  appendPath.PATH = [ "/last" ];
+                }).drvPath
+              )).success;
+            pkgs.runCommand "nu-nix-generated-module-validation" { } "touch $out";
 
           package-autoload-shape = pkgs.runCommand "nu-nix-package-autoload-shape-test" { } ''
             test -d ${pkg}/share/nushell/nu-nix
