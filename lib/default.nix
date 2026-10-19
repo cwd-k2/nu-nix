@@ -31,4 +31,14 @@
       builder = pkgs.callPackage ./mk-nu-env-module.nix { };
     in
     builder (builtins.removeAttrs args [ "pkgs" ]);
+
+  runNuCommand =
+    { pkgs, ... }@args:
+    let
+      system = pkgs.stdenv.hostPlatform.system;
+      builder = pkgs.callPackage ./run-nu-command.nix {
+        nuNixPackage = self.packages.${system}.default;
+      };
+    in
+    builder (builtins.removeAttrs args [ "pkgs" ]);
 }

@@ -55,6 +55,13 @@
             nuLibraries = [ ];
             environment.NU_NIX_BARE_TEST = "without-libraries";
           };
+          nuCommand = self.lib.runNuCommand {
+            inherit pkgs;
+            name = "nu-nix-run-command-test";
+            script = ./tests/run-command.nu;
+            runtimeInputs = [ pkgs.hello ];
+            derivationArgs.NU_NIX_RUN_COMMAND_TEST = "from-nix";
+          };
           generatedValueModule = self.lib.mkNuModuleFromValue {
             inherit pkgs;
             name = "generated-values";
@@ -182,6 +189,8 @@
             fi
             touch $out
           '';
+
+          run-command = nuCommand;
 
           generated-modules =
             pkgs.runCommand "nu-nix-generated-modules-test"

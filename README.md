@@ -236,6 +236,25 @@ program. Run it directly from the example directory:
 nix run . -- Ada
 ```
 
+`lib.runNuCommand` runs a Nushell script as a Nix derivation builder. It gives
+the script a clean Nushell session, makes declared Nushell libraries available,
+and adds build tools to `PATH`.
+
+```nix
+checks.x86_64-linux.quality = nu-nix.lib.runNuCommand {
+  inherit pkgs;
+  name = "quality";
+  script = ./scripts/check.nu;
+  runtimeInputs = with pkgs; [ deadnix nixfmt-tree ];
+  derivationArgs.src = ./.;
+};
+```
+
+The default `nuLibraries` contains nu-nix. Use `nuLibraries = [ ];` for a
+standalone script, `nuLibDirs` for unpackaged module directories, and
+`derivationArgs` for values such as `src`, `meta`, or `passthru` that must
+be passed to the underlying derivation.
+
 ## Package-only install
 
 ```sh
