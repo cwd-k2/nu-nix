@@ -223,6 +223,15 @@ packages.x86_64-linux.session-env = nu-nix.lib.mkNuEnvModule {
 both operations. Existing values must also be lists, as Nushell's built-in
 `PATH` value normally is.
 
+The [generated application example](examples/generated-application) combines
+all three builders: Nix declarations become a data module and an environment
+module, then `mkNuApplication` makes both available to a multi-file Nushell
+program. Run it directly from the example directory:
+
+```sh
+nix run . -- Ada
+```
+
 ## Package-only install
 
 ```sh

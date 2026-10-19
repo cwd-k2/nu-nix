@@ -44,12 +44,9 @@
           system = pkgs.stdenv.hostPlatform.system;
           pkg = self.packages.${system}.default;
           pkgWithAutoload = self.packages.${system}.with-autoload;
-          testApplication = self.lib.mkNuApplication {
+          generatedApplicationExample = import ./examples/generated-application/default.nix {
             inherit pkgs;
-            name = "nu-nix-application-test";
-            src = ./tests/application;
-            runtimeInputs = [ pkgs.hello ];
-            environment.NU_NIX_APPLICATION_TEST = "from-nix";
+            nu-nix = self;
           };
           generatedValueModule = self.lib.mkNuModuleFromValue {
             inherit pkgs;
@@ -149,12 +146,16 @@
           package-with-autoload = pkgWithAutoload;
 
           application = pkgs.runCommand "nu-nix-application-test-result" { } ''
-            output=$(${testApplication}/bin/nu-nix-application-test tester)
+            output=$(${generatedApplicationExample.application}/bin/nu-nix-generated-example tester)
             printf '%s\n' "$output" | grep -F '"greeting":"hello tester"'
             printf '%s\n' "$output" | grep -F '"nix":"{'
             printf '%s\n' "$output" | grep -F 'enabled = true;'
             printf '%s\n' "$output" | grep -F '"external":"Hello, world!"'
             printf '%s\n' "$output" | grep -F '"configured":"from-nix"'
+            printf '%s\n' "$output" | grep -F '"host":"example-host"'
+            printf '%s\n' "$output" | grep -F '"features":["generated-data","generated-environment"]'
+            printf '%s\n' "$output" | grep -F '"editor":"nvim"'
+            printf '%s\n' "$output" | grep -F '"example_path":["/generated","/shared","/existing"]'
             touch $out
           '';
 
