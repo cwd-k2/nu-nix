@@ -33,6 +33,8 @@ let
   wrapperArgs = [
     "--add-flags"
     "--no-config-file"
+  ]
+  ++ lib.optionals (libraryDirectories != [ ]) [
     "--add-flags"
     "--include-path"
     "--add-flags"

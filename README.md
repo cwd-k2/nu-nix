@@ -184,7 +184,9 @@ their modules under `share/nushell/`.
 The default `nuLibraries` already contains the matching `nu-nix` package, so it
 can normally be omitted. `nuLibDirs` accepts additional module directories when
 they are not packaged under `share/nushell/`. `extraWrapperArgs` provides an
-escape hatch for `makeWrapper` options.
+escape hatch for `makeWrapper` options. Set `nuLibraries = [ ];` for an
+application that does not import any Nushell modules; the wrapper then omits the
+module search path entirely.
 
 Nix values can also become exported Nushell constants without running Nushell
 during Nix evaluation. Values may contain JSON-compatible scalars, lists, and

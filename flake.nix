@@ -48,6 +48,13 @@
             inherit pkgs;
             nu-nix = self;
           };
+          bareApplication = self.lib.mkNuApplication {
+            inherit pkgs;
+            name = "nu-nix-bare-application-test";
+            src = ./tests/bare-application;
+            nuLibraries = [ ];
+            environment.NU_NIX_BARE_TEST = "without-libraries";
+          };
           generatedValueModule = self.lib.mkNuModuleFromValue {
             inherit pkgs;
             name = "generated-values";
@@ -156,6 +163,17 @@
             printf '%s\n' "$output" | grep -F '"features":["generated-data","generated-environment"]'
             printf '%s\n' "$output" | grep -F '"editor":"nvim"'
             printf '%s\n' "$output" | grep -F '"example_path":["/generated","/shared","/existing"]'
+            touch $out
+          '';
+
+          bare-application = pkgs.runCommand "nu-nix-bare-application-test-result" { } ''
+            output=$(${bareApplication}/bin/nu-nix-bare-application-test value)
+            printf '%s\n' "$output" | grep -F '"value":"value"'
+            printf '%s\n' "$output" | grep -F '"configured":"without-libraries"'
+            if grep -F -- '--include-path' ${bareApplication}/bin/nu-nix-bare-application-test; then
+              echo "bare Nushell applications must not receive an empty include path" >&2
+              exit 1
+            fi
             touch $out
           '';
 
