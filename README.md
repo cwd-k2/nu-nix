@@ -227,9 +227,9 @@ packages.x86_64-linux.session-env = nu-nix.lib.mkNuEnvModule {
 };
 ```
 
-`prependPath` and `appendPath` entries must be lists, and a variable cannot use
-both operations. Existing values must also be lists, as Nushell's built-in
-`PATH` value normally is.
+`prependPath` and `appendPath` entries must be lists of strings or Nix paths,
+and a variable cannot use both operations. Existing values must also be lists,
+as Nushell's built-in `PATH` value normally is.
 
 The [generated application example](examples/generated-application) combines
 all three builders: Nix declarations become a data module and an environment
@@ -248,7 +248,7 @@ and adds build tools to `PATH`.
 checks.x86_64-linux.quality = nu-nix.lib.runNuCommand {
   inherit pkgs;
   name = "quality";
-  script = ./scripts/check.nu;
+  scriptFile = ./scripts/check.nu;
   runtimeInputs = with pkgs; [ deadnix nixfmt-tree ];
   derivationArgs.src = ./.;
 };
@@ -257,7 +257,8 @@ checks.x86_64-linux.quality = nu-nix.lib.runNuCommand {
 The default `nuLibraries` contains nu-nix. Use `nuLibraries = [ ];` for a
 standalone script, `nuLibDirs` for unpackaged module directories, and
 `derivationArgs` for values such as `src`, `meta`, or `passthru` that must
-be passed to the underlying derivation.
+be passed to the underlying derivation. `scriptText` accepts an inline Nushell
+program; `script` remains as a compatibility alias for `scriptFile`.
 
 ## Package-only install
 
@@ -272,10 +273,9 @@ Then load the module manually in your Nushell config:
 use ~/.nix-profile/share/nushell/nu-nix *
 ```
 
-For profile-level autoload, install the explicit autoload variant:
-
-```sh
-nix profile install github:cwd-k2/nu-nix#with-autoload
-```
+For profile-level autoload, put the same `use` statement in
+`~/.config/nushell/autoload/nu-nix.nu`. The package itself does not decide
+whether it is autoloaded; the NixOS module, Home Manager module, or user config
+owns that policy.
 
 For login-shell integration, prefer the NixOS module.

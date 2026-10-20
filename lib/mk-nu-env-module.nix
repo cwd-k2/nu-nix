@@ -32,6 +32,17 @@ let
     in
     !builtins.isList value
   ) pathNames;
+  invalidPathEntries = builtins.filter (
+    variable:
+    let
+      value =
+        if builtins.hasAttr variable prependPath then
+          builtins.getAttr variable prependPath
+        else
+          builtins.getAttr variable appendPath;
+    in
+    builtins.isList value && !(lib.all (entry: builtins.isString entry || builtins.isPath entry) value)
+  ) pathNames;
   duplicateOperations = builtins.filter (
     variable: builtins.hasAttr variable prependPath && builtins.hasAttr variable appendPath
   ) pathNames;
@@ -61,6 +72,8 @@ assert lib.assertMsg (invalidVariableNames == [ ])
   "Nushell environment variable names must use shell-compatible identifiers; invalid names: ${lib.concatStringsSep ", " invalidVariableNames}";
 assert lib.assertMsg (invalidPathValues == [ ])
   "Nushell PATH operations require lists; invalid variables: ${lib.concatStringsSep ", " invalidPathValues}";
+assert lib.assertMsg (invalidPathEntries == [ ])
+  "Nushell PATH operation entries must be strings or paths; invalid variables: ${lib.concatStringsSep ", " invalidPathEntries}";
 assert lib.assertMsg (duplicateOperations == [ ])
   "A Nushell environment variable cannot have both prependPath and appendPath operations: ${lib.concatStringsSep ", " duplicateOperations}";
 mkNuModule {

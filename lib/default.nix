@@ -1,4 +1,4 @@
-{ self }:
+{ ... }:
 
 {
   mkNuModule =
@@ -9,14 +9,20 @@
     builder (builtins.removeAttrs args [ "pkgs" ]);
 
   mkNuApplication =
-    { pkgs, ... }@args:
+    {
+      pkgs,
+      nuNixPackage ? pkgs.callPackage ../package { },
+      ...
+    }@args:
     let
-      system = pkgs.stdenv.hostPlatform.system;
-      builder = pkgs.callPackage ./mk-nu-application.nix {
-        nuNixPackage = self.packages.${system}.default;
-      };
+      builder = pkgs.callPackage ./mk-nu-application.nix { inherit nuNixPackage; };
     in
-    builder (builtins.removeAttrs args [ "pkgs" ]);
+    builder (
+      builtins.removeAttrs args [
+        "pkgs"
+        "nuNixPackage"
+      ]
+    );
 
   mkNuModuleFromValue =
     { pkgs, ... }@args:
@@ -33,12 +39,18 @@
     builder (builtins.removeAttrs args [ "pkgs" ]);
 
   runNuCommand =
-    { pkgs, ... }@args:
+    {
+      pkgs,
+      nuNixPackage ? pkgs.callPackage ../package { },
+      ...
+    }@args:
     let
-      system = pkgs.stdenv.hostPlatform.system;
-      builder = pkgs.callPackage ./run-nu-command.nix {
-        nuNixPackage = self.packages.${system}.default;
-      };
+      builder = pkgs.callPackage ./run-nu-command.nix { inherit nuNixPackage; };
     in
-    builder (builtins.removeAttrs args [ "pkgs" ]);
+    builder (
+      builtins.removeAttrs args [
+        "pkgs"
+        "nuNixPackage"
+      ]
+    );
 }

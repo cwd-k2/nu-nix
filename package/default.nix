@@ -4,7 +4,6 @@
   lib,
   nushell,
   symlinkJoin,
-  withAutoload ? false,
   writeShellApplication,
 }:
 
@@ -35,11 +34,10 @@ let
   nuNixModule = mkNuModule {
     name = "nu-nix";
     src = ./scripts/nu-nix;
-    autoLoad = withAutoload;
   };
 in
 symlinkJoin {
-  name = if withAutoload then "nu-nix-with-autoload" else "nu-nix";
+  name = "nu-nix";
   paths = [
     nuBash
     nuNixModule

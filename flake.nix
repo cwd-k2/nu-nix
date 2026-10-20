@@ -19,9 +19,6 @@
       packages = forAllSystems (pkgs: {
         default = pkgs.callPackage ./package { };
         nu-nix = self.packages.${pkgs.stdenv.hostPlatform.system}.default;
-        with-autoload = pkgs.callPackage ./package {
-          withAutoload = true;
-        };
       });
 
       apps = forAllSystems (pkgs: {
@@ -43,7 +40,6 @@
         let
           system = pkgs.stdenv.hostPlatform.system;
           pkg = self.packages.${system}.default;
-          pkgWithAutoload = self.packages.${system}.with-autoload;
           generatedApplicationExample = import ./examples/generated-application/default.nix {
             inherit pkgs;
             nu-nix = self;
@@ -61,6 +57,14 @@
             script = ./tests/run-command.nu;
             runtimeInputs = [ pkgs.hello ];
             derivationArgs.NU_NIX_RUN_COMMAND_TEST = "from-nix";
+          };
+          nuCommandText = self.lib.runNuCommand {
+            inherit pkgs;
+            name = "nu-nix-inline-command-test";
+            scriptText = ''
+              "inline script" | save $env.out
+            '';
+            nuLibraries = [ ];
           };
           generatedValueModule = self.lib.mkNuModuleFromValue {
             inherit pkgs;
@@ -163,8 +167,6 @@
         {
           package = pkg;
 
-          package-with-autoload = pkgWithAutoload;
-
           application = pkgs.runCommand "nu-nix-application-test-result" { } ''
             output=$(${generatedApplicationExample.application}/bin/nu-nix-generated-example tester)
             printf '%s\n' "$output" | grep -F '"greeting":"hello tester"'
@@ -191,6 +193,8 @@
           '';
 
           run-command = nuCommand;
+
+          run-command-text = nuCommandText;
 
           generated-modules =
             pkgs.runCommand "nu-nix-generated-modules-test"
@@ -222,6 +226,14 @@
                   inherit pkgs;
                   name = "invalid-env-name-module";
                   variables."invalid.name" = true;
+                }).drvPath
+              )).success;
+            assert
+              !(builtins.tryEval (
+                (self.lib.mkNuEnvModule {
+                  inherit pkgs;
+                  name = "invalid-env-path-entry-module";
+                  prependPath.PATH = [ 42 ];
                 }).drvPath
               )).success;
             assert
@@ -299,6 +311,22 @@
               !(builtins.tryEval (
                 (self.lib.runNuCommand {
                   inherit pkgs;
+                  name = "missing-command-script";
+                }).drvPath
+              )).success;
+            assert
+              !(builtins.tryEval (
+                (self.lib.runNuCommand {
+                  inherit pkgs;
+                  name = "ambiguous-command-script";
+                  scriptFile = ./tests/run-command.nu;
+                  scriptText = "print ambiguous";
+                }).drvPath
+              )).success;
+            assert
+              !(builtins.tryEval (
+                (self.lib.runNuCommand {
+                  inherit pkgs;
                   name = "invalid-command-script";
                   script = [ ./tests/run-command.nu ];
                 }).drvPath
@@ -308,9 +336,6 @@
           package-autoload-shape = pkgs.runCommand "nu-nix-package-autoload-shape-test" { } ''
             test -d ${pkg}/share/nushell/nu-nix
             test ! -e ${pkg}/share/nushell/vendor/autoload/nu-nix.nu
-            test -f ${pkgWithAutoload}/share/nushell/vendor/autoload/nu-nix.nu
-            grep -F '/share/nushell/nu-nix' \
-              ${pkgWithAutoload}/share/nushell/vendor/autoload/nu-nix.nu
             touch $out
           '';
 
