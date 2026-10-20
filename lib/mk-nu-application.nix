@@ -20,9 +20,14 @@
 }:
 
 let
-  recordSeparator = builtins.fromJSON ''"\u001e"'';
-  libraryDirectories = map (package: "${package}/share/nushell") nuLibraries ++ nuLibDirs;
-  includePath = lib.concatStringsSep recordSeparator libraryDirectories;
+  support = import ./builder-support.nix { inherit lib; };
+  includePath = support.mkNuLibraryPath { inherit nuLibraries nuLibDirs; };
+  invalidEnvironmentNames = builtins.filter (variable: !support.validEnvironmentName variable) (
+    lib.attrNames environment
+  );
+  invalidEnvironmentValues = builtins.filter (
+    variable: !support.validEnvironmentValue environment.${variable}
+  ) (lib.attrNames environment);
   environmentArgs = lib.concatLists (
     lib.mapAttrsToList (variable: value: [
       "--set"
@@ -34,7 +39,7 @@ let
     "--add-flags"
     "--no-config-file"
   ]
-  ++ lib.optionals (libraryDirectories != [ ]) [
+  ++ lib.optionals (includePath != null) [
     "--add-flags"
     "--include-path"
     "--add-flags"
@@ -49,6 +54,14 @@ let
   ++ environmentArgs
   ++ extraWrapperArgs;
 in
+assert lib.assertMsg (support.validName name)
+  "Nushell application names must be safe path basenames; invalid name: ${builtins.toJSON name}";
+assert lib.assertMsg (support.validRelativePath entrypoint)
+  "Nushell application entrypoints must be safe relative paths; invalid entrypoint: ${builtins.toJSON entrypoint}";
+assert lib.assertMsg (invalidEnvironmentNames == [ ])
+  "Nushell application environment variable names must use shell-compatible identifiers; invalid names: ${lib.concatStringsSep ", " invalidEnvironmentNames}";
+assert lib.assertMsg (invalidEnvironmentValues == [ ])
+  "Nushell application environment values must be strings, paths, or derivations; invalid variables: ${lib.concatStringsSep ", " invalidEnvironmentValues}";
 runCommand name
   {
     nativeBuildInputs = [ makeWrapper ];

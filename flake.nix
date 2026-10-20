@@ -207,7 +207,7 @@
                 touch $out
               '';
 
-          generated-module-validation =
+          builder-validation =
             assert
               !(builtins.tryEval (
                 (self.lib.mkNuModuleFromValue {
@@ -241,7 +241,69 @@
                   appendPath.PATH = [ "/last" ];
                 }).drvPath
               )).success;
-            pkgs.runCommand "nu-nix-generated-module-validation" { } "touch $out";
+            assert
+              !(builtins.tryEval (
+                (self.lib.mkNuModule {
+                  inherit pkgs;
+                  name = "../invalid-module";
+                  src = ./tests/application;
+                }).drvPath
+              )).success;
+            assert
+              !(builtins.tryEval (
+                (self.lib.mkNuApplication {
+                  inherit pkgs;
+                  name = "../invalid-application";
+                  src = ./tests/application;
+                }).drvPath
+              )).success;
+            assert
+              !(builtins.tryEval (
+                (self.lib.mkNuApplication {
+                  inherit pkgs;
+                  name = "invalid-entrypoint-application";
+                  src = ./tests/application;
+                  entrypoint = "../main.nu";
+                }).drvPath
+              )).success;
+            assert
+              !(builtins.tryEval (
+                (self.lib.mkNuApplication {
+                  inherit pkgs;
+                  name = "invalid-environment-name-application";
+                  src = ./tests/application;
+                  environment."invalid.name" = "value";
+                }).drvPath
+              )).success;
+            assert
+              !(builtins.tryEval (
+                (self.lib.mkNuApplication {
+                  inherit pkgs;
+                  name = "invalid-environment-value-application";
+                  src = ./tests/application;
+                  environment.INVALID_VALUE = [
+                    "not"
+                    "a string"
+                  ];
+                }).drvPath
+              )).success;
+            assert
+              !(builtins.tryEval (
+                (self.lib.runNuCommand {
+                  inherit pkgs;
+                  name = "../invalid-command";
+                  script = ./tests/run-command.nu;
+                }).drvPath
+              )).success;
+            assert
+              !(builtins.tryEval (
+                (self.lib.runNuCommand {
+                  inherit pkgs;
+                  name = "invalid-command-script";
+                  script = [ ./tests/run-command.nu ];
+                }).drvPath
+              )).success;
+            pkgs.runCommand "nu-nix-builder-validation" { } "touch $out";
 
           package-autoload-shape = pkgs.runCommand "nu-nix-package-autoload-shape-test" { } ''
             test -d ${pkg}/share/nushell/nu-nix

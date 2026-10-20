@@ -15,16 +15,21 @@
 }:
 
 let
-  recordSeparator = builtins.fromJSON ''"\u001e"'';
-  libraryDirectories = map (package: "${package}/share/nushell") nuLibraries ++ nuLibDirs;
+  support = import ./builder-support.nix { inherit lib; };
+  includePath = support.mkNuLibraryPath { inherit nuLibraries nuLibDirs; };
   nuArgs = [
     "--no-config-file"
   ]
-  ++ lib.optionals (libraryDirectories != [ ]) [
+  ++ lib.optionals (includePath != null) [
     "--include-path"
-    (lib.concatStringsSep recordSeparator libraryDirectories)
+    includePath
   ];
 in
+assert lib.assertMsg (support.validName name)
+  "Nushell command derivation names must be safe path basenames; invalid name: ${builtins.toJSON name}";
+assert lib.assertMsg (
+  builtins.isPath script || builtins.isString script
+) "Nushell command scripts must be paths or strings";
 runCommand name
   (
     derivationArgs

@@ -1,4 +1,5 @@
 {
+  lib,
   runCommand,
 }:
 
@@ -10,6 +11,11 @@
   passthru ? { },
 }:
 
+let
+  support = import ./builder-support.nix { inherit lib; };
+in
+assert lib.assertMsg (support.validName name)
+  "Nushell module names must be safe path basenames; invalid name: ${builtins.toJSON name}";
 runCommand "${name}-nu-module"
   {
     inherit meta passthru;

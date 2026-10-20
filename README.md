@@ -186,7 +186,11 @@ can normally be omitted. `nuLibDirs` accepts additional module directories when
 they are not packaged under `share/nushell/`. `extraWrapperArgs` provides an
 escape hatch for `makeWrapper` options. Set `nuLibraries = [ ];` for an
 application that does not import any Nushell modules; the wrapper then omits the
-module search path entirely.
+module search path entirely. Application, module, and command derivation names
+must start with a letter or digit and otherwise contain only letters, digits,
+`.`, `_`, `+`, or `-`. Application entrypoints must be safe relative paths
+within `src`; wrapper environment names must be shell identifiers and their
+values must be strings, paths, or derivations.
 
 Nix values can also become exported Nushell constants without running Nushell
 during Nix evaluation. Values may contain JSON-compatible scalars, lists, and
