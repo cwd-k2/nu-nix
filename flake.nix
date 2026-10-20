@@ -374,9 +374,23 @@
                 nu --no-config-file test_from_nix.nu
                 touch $out
               '';
+
+          command-normalizer-tests =
+            pkgs.runCommand "nu-nix-command-normalizer-tests"
+              {
+                nativeBuildInputs = [ pkgs.nushell ];
+              }
+              ''
+                mkdir -p package/scripts/nu-nix tests/support
+                cp ${./package/scripts/nu-nix/normalize.nu} package/scripts/nu-nix/normalize.nu
+                cp ${./tests/test_commands.nu} tests/test_commands.nu
+                cp ${./tests/support/assert.nu} tests/support/assert.nu
+                nu --no-config-file tests/test_commands.nu
+                touch $out
+              '';
         }
       );
 
-      formatter = forAllSystems (pkgs: pkgs.nixfmt);
+      formatter = forAllSystems (pkgs: pkgs.nixfmt-tree);
     };
 }

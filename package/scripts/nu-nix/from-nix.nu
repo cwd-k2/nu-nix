@@ -20,15 +20,17 @@
 #   • --expr mode does not support relative `import` inside the expression;
 #     use --file for expressions that import other files.
 
+use internal.nu run-nix-json
+
 export def "from nix" [
   installable?: string  # flake installable, e.g. nixpkgs#hello.meta
   --file (-f): path     # evaluate a .nix file
 ]: [string -> any, nothing -> any] {
   if $file != null {
-    ^nix eval --file ($file | into string) --json | from json
+    run-nix-json eval --file ($file | into string) --json
   } else if $installable != null {
-    ^nix eval $installable --json | from json
+    run-nix-json eval $installable --json
   } else {
-    ^nix eval --expr ($in | into string) --json | from json
+    run-nix-json eval --expr ($in | into string) --json
   }
 }
