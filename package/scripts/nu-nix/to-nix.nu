@@ -42,7 +42,15 @@ def nix-string []: string -> string {
 # Valid Nix identifiers: [a-zA-Z_] followed by [a-zA-Z0-9_'−]*.
 # The hyphen must appear first in the character class to avoid a regex range.
 def nix-key [k: string]: nothing -> string {
-  if ($k =~ "^[a-zA-Z_][-a-zA-Z0-9_']*$") { $k } else { $k | nix-string }
+  let reserved = [
+    "assert" "else" "false" "if" "in" "inherit" "let" "null" "or" "rec"
+    "then" "true" "with"
+  ]
+  if ($k =~ "^[a-zA-Z_][-a-zA-Z0-9_']*$") and ($k not-in $reserved) {
+    $k
+  } else {
+    $k | nix-string
+  }
 }
 
 # Recursively convert a Nu value to a Nix expression string.

@@ -12,7 +12,7 @@
 #   nutest run tests/
 #   nu -c 'use std testing; testing run-tests --path tests/'
 
-use std assert
+use ./support/assert.nu
 use ../package/scripts/nu-nix/mod.nu *
 
 
@@ -206,6 +206,16 @@ def "test empty string key is quoted" [] {
   assert ({"": 1} | to nix | str contains '"" = 1;')
 }
 
+#[test]
+def "test nix keywords are quoted" [] {
+  let rendered = ({"if": 1, "then": 2, "else": 3, "or": 4, "null": 5} | to nix)
+  assert ($rendered | str contains '"if" = 1;')
+  assert ($rendered | str contains '"then" = 2;')
+  assert ($rendered | str contains '"else" = 3;')
+  assert ($rendered | str contains '"or" = 4;')
+  assert ($rendered | str contains '"null" = 5;')
+}
+
 
 # ── Nu types with no Nix equivalent ──────────────────────────────────────────
 
@@ -381,6 +391,7 @@ let _results = [
   (_run "key starting with digit is quoted" { test key starting with digit is quoted })
   (_run "key of only digits is quoted"   { test key of only digits is quoted })
   (_run "empty string key is quoted"     { test empty string key is quoted })
+  (_run "nix keywords are quoted"        { test nix keywords are quoted })
 
   # Nu types with no Nix equivalent
   (_run "datetime becomes iso8601 string"  { test datetime becomes iso8601 string })

@@ -12,7 +12,7 @@
 #   nutest run tests/
 #   nu -c 'use std testing; testing run-tests --path tests/'
 
-use std assert
+use ./support/assert.nu
 use ../package/scripts/nu-nix/mod.nu *
 
 
@@ -246,7 +246,9 @@ def "test roundtrip negative float" [] {
 
 
 # ── Real nixpkgs data ─────────────────────────────────────────────────────────
-# Fetch live package metadata and verify it survives a full round-trip.
+# Fetch registry-backed package metadata and verify it survives a full
+# round-trip. These opt-in tests are useful locally, but are excluded from the
+# hermetic flake check because they depend on the user's registry and network.
 
 #[test]
 def "test nixpkgs hello.meta roundtrip" [] {
@@ -371,7 +373,7 @@ def _run [name: string, f: closure]: nothing -> bool {
   }
 }
 
-let _results = [
+let _core_results = [
   # from nix: expression evaluation
   (_run "from nix int expr"            { test from nix int expr })
   (_run "from nix bool true"           { test from nix bool true })
@@ -418,14 +420,6 @@ let _results = [
   (_run "roundtrip large int"          { test roundtrip large int })
   (_run "roundtrip negative float"     { test roundtrip negative float })
 
-  # Real nixpkgs data
-  (_run "nixpkgs hello.meta roundtrip"   { test nixpkgs hello.meta roundtrip })
-  (_run "nixpkgs git.meta roundtrip"     { test nixpkgs git.meta roundtrip })
-  (_run "nixpkgs nushell.meta roundtrip" { test nixpkgs nushell.meta roundtrip })
-  (_run "nixpkgs curl.meta roundtrip"    { test nixpkgs curl.meta roundtrip })
-  (_run "nixpkgs ripgrep.meta roundtrip" { test nixpkgs ripgrep.meta roundtrip })
-  (_run "nixpkgs python3.meta roundtrip" { test nixpkgs python3.meta roundtrip })
-
   # to nix → nix eval validity
   (_run "to nix nixos-style config is valid"    { test to nix nixos-style config is valid })
   (_run "to nix path-info style is valid"       { test to nix path-info style is valid })
@@ -434,6 +428,21 @@ let _results = [
   # from nix --file
   (_run "from nix --file"              { test from nix --file })
 ]
+
+let _live_results = if ($env.NU_NIX_TEST_LIVE? | default "") == "1" {
+  [
+    (_run "nixpkgs hello.meta roundtrip"   { test nixpkgs hello.meta roundtrip })
+    (_run "nixpkgs git.meta roundtrip"     { test nixpkgs git.meta roundtrip })
+    (_run "nixpkgs nushell.meta roundtrip" { test nixpkgs nushell.meta roundtrip })
+    (_run "nixpkgs curl.meta roundtrip"    { test nixpkgs curl.meta roundtrip })
+    (_run "nixpkgs ripgrep.meta roundtrip" { test nixpkgs ripgrep.meta roundtrip })
+    (_run "nixpkgs python3.meta roundtrip" { test nixpkgs python3.meta roundtrip })
+  ]
+} else {
+  []
+}
+
+let _results = ($_core_results | append $_live_results)
 
 let _n_pass = ($_results | where { $in } | length)
 let _n_fail  = ($_results | where { not $in } | length)

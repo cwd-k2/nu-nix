@@ -342,13 +342,38 @@
 
           # Pure Nushell tests for `to nix` — no Nix evaluation, runs in sandbox.
           to-nix-tests = pkgs.runCommand "nu-nix-to-nix-tests" { buildInputs = [ pkgs.nushell ]; } ''
+            mkdir -p support
             cp ${./tests/test_to_nix.nu} test_to_nix.nu
+            cp ${./tests/support/assert.nu} support/assert.nu
             substituteInPlace test_to_nix.nu \
               --replace '../package/scripts/nu-nix/mod.nu' \
                         '${pkg}/share/nushell/nu-nix/mod.nu'
-            nu test_to_nix.nu
+            nu --no-config-file test_to_nix.nu
             touch $out
           '';
+
+          # Hermetic Nix evaluation and codec round-trip tests. Registry-backed
+          # integration cases stay opt-in via NU_NIX_TEST_LIVE=1.
+          from-nix-tests =
+            pkgs.runCommand "nu-nix-from-nix-tests"
+              {
+                nativeBuildInputs = [
+                  pkgs.nix
+                  pkgs.nushell
+                ];
+                NIX_CONFIG = "experimental-features = nix-command";
+              }
+              ''
+                export HOME="$PWD/home"
+                mkdir -p "$HOME" support
+                cp ${./tests/test_from_nix.nu} test_from_nix.nu
+                cp ${./tests/support/assert.nu} support/assert.nu
+                substituteInPlace test_from_nix.nu \
+                  --replace '../package/scripts/nu-nix/mod.nu' \
+                            '${pkg}/share/nushell/nu-nix/mod.nu'
+                nu --no-config-file test_from_nix.nu
+                touch $out
+              '';
         }
       );
 
