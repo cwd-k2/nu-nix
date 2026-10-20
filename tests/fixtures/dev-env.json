@@ -1,0 +1,28 @@
+{
+  "bashFunctions": {
+    "fixtureHook": "echo ignored"
+  },
+  "structuredAttrs": null,
+  "variables": {
+    "PATH": {
+      "type": "exported",
+      "value": "/nix/store/fixture-one/bin:/nix/store/fixture-two/bin"
+    },
+    "NU_NIX_EXISTING": {
+      "type": "exported",
+      "value": "from-dev-environment"
+    },
+    "NU_NIX_NEW": {
+      "type": "exported",
+      "value": "new-value"
+    },
+    "HOME": {
+      "type": "exported",
+      "value": "/homeless-shelter"
+    },
+    "shellHook": {
+      "type": "var",
+      "value": "echo ignored"
+    }
+  }
+}

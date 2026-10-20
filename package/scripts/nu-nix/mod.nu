@@ -25,6 +25,7 @@
 #   use /path/to/package/scripts/nu-nix/mod.nu *
 
 export use commands.nu *
+export use activation.nu *
 export use from-nix.nu *
 export use to-nix.nu *
 export use legacy.nu *

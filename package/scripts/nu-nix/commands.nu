@@ -41,7 +41,12 @@ export def --wrapped "nu-nix search" [...rest: string] {
 
 # Query store path info as a table.
 export def --wrapped "nu-nix path-info" [...rest: string] {
-  run-nix-json path-info --json ...$rest | normalize-path-info
+  run-nix-json path-info --json --json-format 1 ...$rest | normalize-path-info
+}
+
+# Inspect every path in a store closure, including aggregate closure sizes.
+export def --wrapped "nu-nix closure" [...rest: string] {
+  run-nix-json path-info --json --json-format 1 --recursive --closure-size ...$rest | normalize-path-info
 }
 
 # Show derivation details as a table.

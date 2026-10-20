@@ -40,7 +40,9 @@ assert lib.assertMsg (
   (builtins.length fileScripts == 1) != (scriptText != null)
 ) "Nushell commands require exactly one of scriptFile (or its script alias) and scriptText";
 assert lib.assertMsg (
-  builtins.isPath resolvedScript || builtins.isString resolvedScript || lib.isDerivation resolvedScript
+  builtins.isPath resolvedScript
+  || builtins.isString resolvedScript
+  || lib.isDerivation resolvedScript
 ) "Nushell command scriptFile must be a path or string";
 runCommand name
   (

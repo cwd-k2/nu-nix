@@ -41,6 +41,36 @@ export def normalize-profile []: record -> table {
   | each {|result| $result.info | insert name $result.name }
 }
 
+export def normalize-dev-activation []: record -> record {
+  let protected = [
+    "HOME" "USER" "LOGNAME" "SHELL" "PWD" "OLDPWD" "SHLVL" "_"
+    "TMP" "TEMP" "TMPDIR" "TEMPDIR" "NIX_BUILD_TOP"
+  ]
+  let variables = ($in.variables | transpose name info)
+  let applicable = ($variables
+    | where {|variable|
+        $variable.info.type == "exported" and ($variable.name not-in $protected)
+      })
+  let updates = ($applicable | reduce --fold {} {|variable, result|
+    let value = if $variable.name == "PATH" {
+      $variable.info.value | split row (char esep) | where { not ($in | is-empty) }
+    } else {
+      $variable.info.value
+    }
+    $result | insert $variable.name $value
+  })
+
+  {
+    updates: $updates
+    skipped: ($variables
+      | where {|variable|
+          $variable.info.type != "exported" or ($variable.name in $protected)
+        }
+      | select name
+      | get name)
+  }
+}
+
 def is-record [value: any]: nothing -> bool {
   $value | describe | str starts-with "record"
 }

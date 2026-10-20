@@ -66,6 +66,17 @@
             '';
             nuLibraries = [ ];
           };
+          fakeNix = pkgs.writeShellApplication {
+            name = "nix";
+            runtimeInputs = [ pkgs.coreutils ];
+            text = ''
+              if [[ "$*" != "print-dev-env --json fixture" ]]; then
+                echo "unexpected fake nix invocation: $*" >&2
+                exit 1
+              fi
+              cat ${./tests/fixtures/dev-env.json}
+            '';
+          };
           generatedValueModule = self.lib.mkNuModuleFromValue {
             inherit pkgs;
             name = "generated-values";
@@ -411,6 +422,25 @@
                 cp ${./tests/test_commands.nu} tests/test_commands.nu
                 cp ${./tests/support/assert.nu} tests/support/assert.nu
                 nu --no-config-file tests/test_commands.nu
+                touch $out
+              '';
+
+          activation-tests =
+            pkgs.runCommand "nu-nix-activation-tests"
+              {
+                nativeBuildInputs = [
+                  fakeNix
+                  pkgs.nushell
+                ];
+              }
+              ''
+                export PATH=${fakeNix}/bin:$PATH
+                mkdir -p tests/support
+                cp ${./tests/test_activation.nu} tests/test_activation.nu
+                cp ${./tests/support/assert.nu} tests/support/assert.nu
+                substituteInPlace tests/test_activation.nu \
+                  --replace-fail 'MODULE' '${pkg}/share/nushell/nu-nix/mod.nu'
+                nu --no-config-file tests/test_activation.nu
                 touch $out
               '';
         }

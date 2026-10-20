@@ -32,6 +32,20 @@ let environment = ({variables: {
 }} | normalize-dev-environment)
 assert equal ($environment | where name == EDITOR | get value.0) "nvim"
 
+let activation = ({
+  variables: {
+    PATH: {type: "exported", value: $"/nix/store/one/bin(char esep)/nix/store/two/bin"}
+    EDITOR: {type: "exported", value: "nvim"}
+    HOME: {type: "exported", value: "/homeless-shelter"}
+    shellHook: {type: "var", value: "echo ignored"}
+  }
+} | normalize-dev-activation)
+assert equal $activation.updates.PATH ["/nix/store/one/bin" "/nix/store/two/bin"]
+assert equal $activation.updates.EDITOR "nvim"
+assert ("HOME" not-in ($activation.updates | columns))
+assert ("HOME" in $activation.skipped)
+assert ("shellHook" in $activation.skipped)
+
 let profile = ({elements: {
   hello: {storePaths: ["/nix/store/hello"], active: true}
 }} | normalize-profile)

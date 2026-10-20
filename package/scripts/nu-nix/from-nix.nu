@@ -26,11 +26,16 @@ export def "from nix" [
   installable?: string  # flake installable, e.g. nixpkgs#hello.meta
   --file (-f): path     # evaluate a .nix file
 ]: [string -> any, nothing -> any] {
-  if $file != null {
+  let expression = $in
+  if $file != null and $installable != null {
+    error make { msg: "from nix accepts either an installable or --file, not both" }
+  } else if $file != null {
     run-nix-json eval --file ($file | into string) --json
   } else if $installable != null {
     run-nix-json eval $installable --json
+  } else if $expression == null {
+    error make { msg: "from nix requires an expression on input, an installable, or --file" }
   } else {
-    run-nix-json eval --expr ($in | into string) --json
+    run-nix-json eval --expr ($expression | into string) --json
   }
 }

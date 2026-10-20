@@ -351,6 +351,16 @@ def "test from nix --file" [] {
   assert equal $result.greeting "hello"
 }
 
+#[test]
+def "test from nix rejects missing input" [] {
+  assert error { from nix }
+}
+
+#[test]
+def "test from nix rejects ambiguous source" [] {
+  assert error { from nix nixpkgs#hello --file ./flake.nix }
+}
+
 
 # ── Runner ────────────────────────────────────────────────────────────────────
 # Temporary workaround: nushell 0.113.1 does not ship a working
@@ -427,6 +437,8 @@ let _core_results = [
 
   # from nix --file
   (_run "from nix --file"              { test from nix --file })
+  (_run "from nix rejects missing input" { test from nix rejects missing input })
+  (_run "from nix rejects ambiguous source" { test from nix rejects ambiguous source })
 ]
 
 let _live_results = if ($env.NU_NIX_TEST_LIVE? | default "") == "1" {

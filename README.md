@@ -87,6 +87,21 @@ nu-nix-shell -p jq              # legacy nix-shell → nushell
 
 Exiting the child Nushell returns to the current Nushell session.
 
+To apply a development environment to the current Nushell instead of opening a
+child shell, activate it and later restore the previous environment:
+
+```nushell
+nu-nix activate .#default
+nu-nix deactivate
+```
+
+Activations can be nested. `PATH` entries from the development environment are
+placed before the existing `PATH`, and deactivation restores the exact previous
+value. Session identity and temporary-directory variables such as `HOME`,
+`SHELL`, and `TMPDIR` are protected. The activation result lists skipped shell
+variables and Bash functions; Bash-only `shellHook` code and functions are not
+executed implicitly.
+
 ### Legacy nix-* wrappers
 
 Thin wrappers for the classic `nix-*` CLI tools, with minor Nu enhancements
@@ -113,6 +128,7 @@ These return Nu tables and records — fully composable in pipelines:
 nu-nix build                            # → table of output paths
 nu-nix search nixpkgs jq               # → package table
 nu-nix path-info /nix/store/…          # → store path details
+nu-nix closure .#package               # → recursive closure and size details
 nu-nix print-dev-env                    # → env var table
 nu-nix why-depends /nix/store/… /…     # → dependency chain
 nu-nix flake show                       # → flake output table
@@ -129,6 +145,10 @@ nu-nix search nixpkgs python | where version >= "3.11" | to nix
 nu-nix profile list | select name | each { get storePaths } | flatten
 nu-nix flake show | where type == "packages" and system == "x86_64-linux"
 ```
+
+`nu-nix flake show` recursively walks nested output sets. Each row includes the
+full flake `path`, the top-level output `type`, optional `system` and `name`, the
+leaf `kind`, its description, and the unmodified `raw` leaf returned by Nix.
 
 ### Nix ↔ Nu value conversion
 
