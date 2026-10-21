@@ -10,7 +10,7 @@
 # Raw nix pass-through:  ^nix <subcommand>  (external, text output)
 # Nu-integrated:         nu-nix <subcommand> (this module, Nu values)
 
-use internal.nu run-nix-json
+use internal.nu [enabled-nix-options run-nix-json]
 use normalize.nu *
 use completions.nu [complete-build complete-dev-shell complete-shell]
 
@@ -23,11 +23,11 @@ export def --wrapped "nu-nix develop" [
   --refresh  # refresh cached flake inputs
   ...rest: string@complete-dev-shell
 ] {
-  let options = ([
-    (if $offline { "--offline" })
-    (if $impure { "--impure" })
-    (if $refresh { "--refresh" })
-  ] | compact)
+  let options = (enabled-nix-options {
+    "--offline": $offline
+    "--impure": $impure
+    "--refresh": $refresh
+  })
   ^nix develop ...$options ...$rest --command $nu.current-exe
 }
 
@@ -38,11 +38,11 @@ export def --wrapped "nu-nix shell" [
   --refresh  # refresh cached flake inputs
   ...rest: string@complete-shell
 ] {
-  let options = ([
-    (if $offline { "--offline" })
-    (if $impure { "--impure" })
-    (if $refresh { "--refresh" })
-  ] | compact)
+  let options = (enabled-nix-options {
+    "--offline": $offline
+    "--impure": $impure
+    "--refresh": $refresh
+  })
   ^nix shell ...$options ...$rest --command $nu.current-exe
 }
 
@@ -57,13 +57,13 @@ export def --wrapped "nu-nix build" [
   --refresh  # refresh cached flake inputs
   ...rest: string@complete-build
 ] {
-  let options = ([
-    (if $no_link { "--no-link" })
-    (if $rebuild { "--rebuild" })
-    (if $offline { "--offline" })
-    (if $impure { "--impure" })
-    (if $refresh { "--refresh" })
-  ] | compact)
+  let options = (enabled-nix-options {
+    "--no-link": $no_link
+    "--rebuild": $rebuild
+    "--offline": $offline
+    "--impure": $impure
+    "--refresh": $refresh
+  })
   run-nix-json build --json ...$options ...$rest | normalize-build
 }
 

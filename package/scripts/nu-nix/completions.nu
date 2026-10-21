@@ -1,22 +1,5 @@
 # Context-aware completions for free-form Nix command arguments.
 
-const build_flags = [
-  {value: "--no-link", description: "Do not create the result symlink"}
-  {value: "--print-out-paths", description: "Print resulting store paths"}
-  {value: "--rebuild", description: "Build again and compare the result"}
-  {value: "--offline", description: "Disable substituters and network access"}
-  {value: "--impure", description: "Allow access to mutable paths"}
-  {value: "--refresh", description: "Refresh cached flake inputs"}
-]
-
-const shell_flags = [
-  {value: "--ignore-environment", description: "Clear the environment before entering"}
-  {value: "--keep", description: "Keep a variable with --ignore-environment"}
-  {value: "--offline", description: "Disable substituters and network access"}
-  {value: "--impure", description: "Allow access to mutable paths"}
-  {value: "--refresh", description: "Refresh cached flake inputs"}
-]
-
 export def format-flake-completions [
   token: string
   outputs: table
@@ -67,10 +50,10 @@ def local-output-rows [target: string, output_type: string, system: string]: not
   }
 }
 
-def complete-local-flake [input: any, allowed_types: list<string>, flags: table] {
+def complete-local-flake [input: any, allowed_types: list<string>] {
   let token = (completion-token $input)
   if $token starts-with "-" {
-    $flags | where value starts-with $token
+    []
   } else if not ($token | str contains "#") {
     null
   } else {
@@ -90,17 +73,17 @@ def complete-local-flake [input: any, allowed_types: list<string>, flags: table]
 }
 
 export def complete-build [token: any] {
-  complete-local-flake $token ["packages"] $build_flags
+  complete-local-flake $token ["packages"]
 }
 
 export def complete-dev-shell [token: any] {
-  complete-local-flake $token ["devShells"] $shell_flags
+  complete-local-flake $token ["devShells"]
 }
 
 export def complete-shell [token: any] {
-  complete-local-flake $token ["packages"] $shell_flags
+  complete-local-flake $token ["packages"]
 }
 
 export def complete-nix-value [token: any] {
-  complete-local-flake $token ["packages"] []
+  complete-local-flake $token ["packages"]
 }

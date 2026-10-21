@@ -1,6 +1,6 @@
 # Apply a Nix development environment to the current Nushell session.
 
-use internal.nu run-nix-json
+use internal.nu [enabled-nix-options run-nix-json]
 use normalize.nu normalize-dev-activation
 use completions.nu complete-dev-shell
 
@@ -10,11 +10,11 @@ export def --env --wrapped "nu-nix activate" [
   --refresh  # refresh cached flake inputs
   ...rest: string@complete-dev-shell
 ] {
-  let options = ([
-    (if $offline { "--offline" })
-    (if $impure { "--impure" })
-    (if $refresh { "--refresh" })
-  ] | compact)
+  let options = (enabled-nix-options {
+    "--offline": $offline
+    "--impure": $impure
+    "--refresh": $refresh
+  })
   let environment = (run-nix-json print-dev-env --json ...$options ...$rest)
   let normalized = ($environment | normalize-dev-activation)
   let updates = (if "PATH" in ($normalized.updates | columns) {

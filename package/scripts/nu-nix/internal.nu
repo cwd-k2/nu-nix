@@ -1,4 +1,11 @@
 # Shared boundary for commands that consume Nix's machine-readable output.
+export def enabled-nix-options [options: record]: nothing -> list<string> {
+  $options
+  | transpose option enabled
+  | where enabled
+  | get option
+}
+
 export def --wrapped run-nix-json [...args: string]: nothing -> any {
   let result = (do { ^nix ...$args } | complete)
   if $result.exit_code != 0 {

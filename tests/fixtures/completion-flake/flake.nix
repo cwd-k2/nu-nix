@@ -1,5 +1,5 @@
 {
-  outputs = { self }: {
+  outputs = { ... }: {
     packages = {
       x86_64-linux = {
         alpha = null;

@@ -1,5 +1,11 @@
 use ./support/assert.nu
-use MODULE run-nix-json
+use MODULE [enabled-nix-options run-nix-json]
+
+assert equal (enabled-nix-options {
+  "--first": true
+  "--disabled": false
+  "--last": true
+}) ["--first" "--last"]
 
 assert equal (run-nix-json success) {answer: 42}
 
