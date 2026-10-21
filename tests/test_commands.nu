@@ -91,6 +91,7 @@ assert ("/nix/store/shared" not-in ($closure_diff | get path))
 let outputs = ({
   packages: {
     "x86_64-linux": {
+      type: {type: "derivation", description: "A package named type"}
       scope: {
         hello: {type: "derivation", description: "A greeting"}
       }
@@ -110,6 +111,10 @@ assert equal $hello.system "x86_64-linux"
 assert equal $hello.name "scope.hello"
 assert equal $hello.kind "derivation"
 assert equal $hello.description "A greeting"
+
+let type_package = ($outputs | where path == "packages.x86_64-linux.type" | first)
+assert equal $type_package.name "type"
+assert equal $type_package.kind "derivation"
 
 let formatter = ($outputs | where path == "formatter.x86_64-linux" | first)
 assert equal $formatter.system "x86_64-linux"
