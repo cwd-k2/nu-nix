@@ -16,6 +16,10 @@
       "type": "exported",
       "value": "new-value"
     },
+    "NU_NIX_ACTIVATION_STACK": {
+      "type": "exported",
+      "value": "must-not-replace-internal-state"
+    },
     "HOME": {
       "type": "exported",
       "value": "/homeless-shelter"

@@ -15,6 +15,7 @@ assert equal $env.NU_NIX_EXISTING "from-dev-environment"
 assert equal $env.NU_NIX_NEW "new-value"
 assert equal $env.HOME $original_home
 assert ("HOME" in $first.skipped)
+assert ("NU_NIX_ACTIVATION_STACK" in $first.skipped)
 assert ("shellHook" in $first.skipped)
 assert equal $first.ignoredBashFunctions ["fixtureHook"]
 

@@ -117,6 +117,7 @@ export def normalize-dev-activation []: record -> record {
   let protected = [
     "HOME" "USER" "LOGNAME" "SHELL" "PWD" "OLDPWD" "SHLVL" "_"
     "TMP" "TEMP" "TMPDIR" "TEMPDIR" "NIX_BUILD_TOP"
+    "NU_NIX_ACTIVATION_STACK"
   ]
   let variables = ($in.variables | transpose name info)
   let applicable = ($variables

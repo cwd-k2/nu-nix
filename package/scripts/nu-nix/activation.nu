@@ -43,7 +43,7 @@ export def --env --wrapped "nu-nix activate" [
   {
     applied: ($updates | columns)
     skipped: $normalized.skipped
-    ignoredBashFunctions: ($environment.bashFunctions | columns)
+    ignoredBashFunctions: ($environment.bashFunctions? | default {} | columns)
   }
 }
 
