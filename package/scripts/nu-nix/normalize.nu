@@ -155,11 +155,12 @@ def is-system [value: string]: nothing -> bool {
 def flake-leaf [path: list<string>, value: any]: nothing -> record {
   let output = ($path | first)
   let tail = ($path | skip 1)
-  let system = ($tail | where {|part| is-system $part } | first | default null)
+  let first = ($tail | first | default null)
+  let system = if $first != null and (is-system $first) { $first } else { null }
   let names = if $system == null {
     $tail
   } else {
-    $tail | where {|part| $part != $system }
+    $tail | skip 1
   }
   let record_value = if (is-record $value) { $value } else { {} }
 

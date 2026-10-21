@@ -92,6 +92,7 @@ let outputs = ({
   packages: {
     "x86_64-linux": {
       type: {type: "derivation", description: "A package named type"}
+      "x86_64-linux": {type: "derivation", description: "A package named like a system"}
       scope: {
         hello: {type: "derivation", description: "A greeting"}
       }
@@ -115,6 +116,10 @@ assert equal $hello.description "A greeting"
 let type_package = ($outputs | where path == "packages.x86_64-linux.type" | first)
 assert equal $type_package.name "type"
 assert equal $type_package.kind "derivation"
+
+let system_package = ($outputs | where path == "packages.x86_64-linux.x86_64-linux" | first)
+assert equal $system_package.system "x86_64-linux"
+assert equal $system_package.name "x86_64-linux"
 
 let formatter = ($outputs | where path == "formatter.x86_64-linux" | first)
 assert equal $formatter.system "x86_64-linux"
