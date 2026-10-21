@@ -135,6 +135,7 @@ nu-nix flake show                       # → flake output table
 nu-nix flake metadata                   # → flake info record
 nu-nix derivation show                  # → derivation details table
 nu-nix profile list                     # → installed packages table
+nu-nix profile diff old-link new-link   # → profile generation changes
 ```
 
 Because these are module functions (not an external binary), their output
@@ -149,6 +150,24 @@ nu-nix flake show | where type == "packages" and system == "x86_64-linux"
 `nu-nix flake show` recursively walks nested output sets. Each row includes the
 full flake `path`, the top-level output `type`, optional `system` and `name`, the
 leaf `kind`, its description, and the unmodified `raw` leaf returned by Nix.
+
+Compare two `nix profile` generation links without parsing Nix's human-readable
+history output:
+
+```nushell
+let profiles = ($env.XDG_STATE_HOME? | default ($env.HOME | path join .local state))
+  | path join nix profiles
+
+nu-nix profile diff \
+  ($profiles | path join profile-41-link) \
+  ($profiles | path join profile-42-link)
+| where change != unchanged
+```
+
+The default view compares directly installed profile elements and retains the
+complete `before` and `after` records. Add `--closure` to compare every
+transitive store path and report `narSizeDelta` and `closureSizeDelta`; add
+`--all` to include unchanged rows.
 
 ### Nix ↔ Nu value conversion
 

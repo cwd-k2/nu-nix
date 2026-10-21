@@ -52,6 +52,41 @@ let profile = ({elements: {
 assert equal $profile.0.name "hello"
 assert equal $profile.0.active true
 
+let profile_diff = (normalize-profile-diff {
+  elements: {
+    hello: {storePaths: ["/nix/store/hello-1"], version: "1"}
+    removed: {storePaths: ["/nix/store/removed"]}
+    stable: {storePaths: ["/nix/store/stable"]}
+  }
+} {
+  elements: {
+    hello: {storePaths: ["/nix/store/hello-2"], version: "2"}
+    added: {storePaths: ["/nix/store/added"]}
+    stable: {storePaths: ["/nix/store/stable"]}
+  }
+})
+assert equal ($profile_diff | get name) [added hello removed]
+assert equal ($profile_diff | where name == hello | get change.0) "updated"
+assert equal ($profile_diff | where name == removed | get toStorePaths.0) []
+
+let profile_diff_all = (normalize-profile-diff --all {
+  elements: {stable: {storePaths: ["/nix/store/stable"]}}
+} {
+  elements: {stable: {storePaths: ["/nix/store/stable"]}}
+})
+assert equal $profile_diff_all.0.change "unchanged"
+
+let closure_diff = (normalize-closure-diff {
+  "/nix/store/old": {narSize: 100, closureSize: 300}
+  "/nix/store/shared": {narSize: 50, closureSize: 50}
+} {
+  "/nix/store/new": {narSize: 120, closureSize: 360}
+  "/nix/store/shared": {narSize: 50, closureSize: 50}
+})
+assert equal ($closure_diff | where path == "/nix/store/new" | get narSizeDelta.0) 120
+assert equal ($closure_diff | where path == "/nix/store/old" | get narSizeDelta.0) (-100)
+assert ("/nix/store/shared" not-in ($closure_diff | get path))
+
 let outputs = ({
   packages: {
     "x86_64-linux": {

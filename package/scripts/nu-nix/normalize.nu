@@ -41,6 +41,78 @@ export def normalize-profile []: record -> table {
   | each {|result| $result.info | insert name $result.name }
 }
 
+export def normalize-profile-diff [before: record, after: record, --all]: nothing -> table {
+  let before_names = ($before.elements | columns)
+  let after_names = ($after.elements | columns)
+  $before_names
+  | append $after_names
+  | uniq
+  | sort
+  | each {|name|
+      let had_before = ($name in $before_names)
+      let has_after = ($name in $after_names)
+      let old = if $had_before { $before.elements | get $name } else { null }
+      let new = if $has_after { $after.elements | get $name } else { null }
+      let change = if not $had_before {
+        "added"
+      } else if not $has_after {
+        "removed"
+      } else if $old != $new {
+        "updated"
+      } else {
+        "unchanged"
+      }
+      {
+        name: $name
+        change: $change
+        before: $old
+        after: $new
+        fromStorePaths: (if $had_before { $old.storePaths? | default [] } else { [] })
+        toStorePaths: (if $has_after { $new.storePaths? | default [] } else { [] })
+      }
+    }
+  | if $all { $in } else { where change != "unchanged" }
+}
+
+export def normalize-closure-diff [before: record, after: record, --all]: nothing -> table {
+  let before_paths = ($before | columns)
+  let after_paths = ($after | columns)
+  $before_paths
+  | append $after_paths
+  | uniq
+  | sort
+  | each {|path|
+      let had_before = ($path in $before_paths)
+      let has_after = ($path in $after_paths)
+      let old = if $had_before { $before | get $path } else { null }
+      let new = if $has_after { $after | get $path } else { null }
+      let change = if not $had_before {
+        "added"
+      } else if not $has_after {
+        "removed"
+      } else if $old != $new {
+        "updated"
+      } else {
+        "unchanged"
+      }
+      {
+        path: $path
+        change: $change
+        narSizeDelta: (
+          (if $has_after { $new.narSize? | default 0 } else { 0 })
+          - (if $had_before { $old.narSize? | default 0 } else { 0 })
+        )
+        closureSizeDelta: (
+          (if $has_after { $new.closureSize? | default 0 } else { 0 })
+          - (if $had_before { $old.closureSize? | default 0 } else { 0 })
+        )
+        before: $old
+        after: $new
+      }
+    }
+  | if $all { $in } else { where change != "unchanged" }
+}
+
 export def normalize-dev-activation []: record -> record {
   let protected = [
     "HOME" "USER" "LOGNAME" "SHELL" "PWD" "OLDPWD" "SHLVL" "_"

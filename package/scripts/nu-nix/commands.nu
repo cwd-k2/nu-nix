@@ -84,3 +84,24 @@ export def --wrapped "nu-nix flake metadata" [...rest: string] {
 export def --wrapped "nu-nix profile list" [...rest: string] {
   run-nix-json profile list --json ...$rest | normalize-profile
 }
+
+# Compare two profile generations as structured data. With --closure, compare
+# their complete store closures instead of only directly installed packages.
+export def "nu-nix profile diff" [
+  before: path  # older profile generation link
+  after: path   # newer profile generation link
+  --closure     # include every transitive store path
+  --all         # include unchanged entries
+] {
+  let old_path = ($before | path expand | into string)
+  let new_path = ($after | path expand | into string)
+  if $closure {
+    let old = (run-nix-json path-info --json --json-format 1 --recursive --closure-size $old_path)
+    let new = (run-nix-json path-info --json --json-format 1 --recursive --closure-size $new_path)
+    normalize-closure-diff $old $new --all=$all
+  } else {
+    let old = (run-nix-json profile list --json --profile $old_path)
+    let new = (run-nix-json profile list --json --profile $new_path)
+    normalize-profile-diff $old $new --all=$all
+  }
+}
