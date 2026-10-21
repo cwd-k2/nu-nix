@@ -273,7 +273,8 @@ packages.x86_64-linux.host-context = nu-nix.lib.mkNuModuleFromValue {
 ```
 
 Loading the resulting module with `use host-context *` exports `$host` and
-`$features`. Export names must be valid Nushell identifiers.
+`$features`. Export names must be valid Nushell identifiers and cannot shadow
+the built-in `$env`, `$in`, or `$nu` variables.
 
 `lib.mkNuEnvModule` produces a module with an `export-env` block. It can set
 typed Nushell environment values and update list-valued path variables while

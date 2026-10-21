@@ -8,6 +8,15 @@ in
 
   validEnvironmentName = name: builtins.match "[A-Za-z_][A-Za-z0-9_]*" name != null;
 
+  validNuIdentifier =
+    name:
+    builtins.match "[A-Za-z_][A-Za-z0-9_]*" name != null
+    && !(builtins.elem name [
+      "env"
+      "in"
+      "nu"
+    ]);
+
   validEnvironmentValue =
     value: builtins.isString value || builtins.isPath value || lib.isDerivation value;
 

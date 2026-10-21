@@ -13,16 +13,18 @@
 }:
 
 let
+  support = import ./builder-support.nix { inherit lib; };
   renderNuValue = import ./render-nu-value.nix { inherit lib; };
-  validIdentifier = name': builtins.match "[A-Za-z_][A-Za-z0-9_]*" name' != null;
-  invalidIdentifiers = builtins.filter (name': !validIdentifier name') (lib.attrNames values);
+  invalidIdentifiers = builtins.filter (name': !support.validNuIdentifier name') (
+    lib.attrNames values
+  );
   source = lib.concatStringsSep "\n" (
     lib.mapAttrsToList (exportName: value: "export const ${exportName} = ${renderNuValue value}") values
   );
   mkNuModule = callPackage ./mk-nu-module.nix { };
 in
 assert lib.assertMsg (invalidIdentifiers == [ ])
-  "Nushell export names must start with a letter or underscore and contain only letters, digits, or underscores; invalid names: ${lib.concatStringsSep ", " invalidIdentifiers}";
+  "Nushell export names must be non-reserved identifiers containing only letters, digits, or underscores; invalid names: ${lib.concatStringsSep ", " invalidIdentifiers}";
 mkNuModule {
   inherit
     autoLoad

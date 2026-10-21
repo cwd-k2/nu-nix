@@ -264,6 +264,12 @@
                 values."invalid.name" = true;
               }).drvPath;
             assert evaluationFails
+              (self.lib.mkNuModuleFromValue {
+                inherit pkgs;
+                name = "reserved-value-module";
+                values.nu = true;
+              }).drvPath;
+            assert evaluationFails
               (self.lib.mkNuEnvModule {
                 inherit pkgs;
                 name = "invalid-env-name-module";
