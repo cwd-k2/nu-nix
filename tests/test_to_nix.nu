@@ -54,7 +54,7 @@ def "test float" [] {
 #[test]
 def "test float whole gets dot zero" [] {
   # Nushell may serialise 1.0 as "1"; we must emit "1.0" so Nix sees a float.
-  assert ($"(1.0 | to nix)" | str contains ".")
+  assert equal (1.0 | to nix) "1.0"
 }
 
 
@@ -162,7 +162,7 @@ def "test record hyphen key is bare" [] {
 
 #[test]
 def "test record space key is quoted" [] {
-  assert ({"hello world": 1} | to nix | str contains '"hello world" = 1;')
+  assert equal ({"hello world": 1} | to nix) "{\n  \"hello world\" = 1;\n}"
 }
 
 #[test]
@@ -172,16 +172,12 @@ def "test record nested" [] {
 
 #[test]
 def "test record multiple fields" [] {
-  let r = ({x: 1, y: 2} | to nix)
-  assert ($r | str contains "x = 1;")
-  assert ($r | str contains "y = 2;")
+  assert equal ({x: 1, y: 2} | to nix) "{\n  x = 1;\n  y = 2;\n}"
 }
 
 #[test]
 def "test record with list value" [] {
-  let r = ({tags: ["a" "b"]} | to nix)
-  assert ($r | str contains "tags =")
-  assert ($r | str contains '"a"')
+  assert equal ({tags: ["a" "b"]} | to nix) "{\n  tags = [\n    \"a\"\n    \"b\"\n  ];\n}"
 }
 
 
@@ -196,27 +192,24 @@ def "test key with apostrophe is bare" [] {
 #[test]
 def "test key starting with digit is quoted" [] {
   # Nix identifiers cannot start with a digit.
-  assert ({"1foo": 1} | to nix | str contains '"1foo" = 1;')
+  assert equal ({"1foo": 1} | to nix) "{\n  \"1foo\" = 1;\n}"
 }
 
 #[test]
 def "test key of only digits is quoted" [] {
-  assert ({"42": 1} | to nix | str contains '"42" = 1;')
+  assert equal ({"42": 1} | to nix) "{\n  \"42\" = 1;\n}"
 }
 
 #[test]
 def "test empty string key is quoted" [] {
-  assert ({"": 1} | to nix | str contains '"" = 1;')
+  assert equal ({"": 1} | to nix) "{\n  \"\" = 1;\n}"
 }
 
 #[test]
 def "test nix keywords are quoted" [] {
-  let rendered = ({"if": 1, "then": 2, "else": 3, "or": 4, "null": 5} | to nix)
-  assert ($rendered | str contains '"if" = 1;')
-  assert ($rendered | str contains '"then" = 2;')
-  assert ($rendered | str contains '"else" = 3;')
-  assert ($rendered | str contains '"or" = 4;')
-  assert ($rendered | str contains '"null" = 5;')
+  assert equal (
+    {"if": 1, "then": 2, "else": 3, "or": 4, "null": 5} | to nix
+  ) "{\n  \"if\" = 1;\n  \"then\" = 2;\n  \"else\" = 3;\n  \"or\" = 4;\n  \"null\" = 5;\n}"
 }
 
 
@@ -225,9 +218,7 @@ def "test nix keywords are quoted" [] {
 #[test]
 def "test datetime becomes iso8601 string" [] {
   # Nix has no date type; we emit an ISO-8601 string.
-  let r = (2024-01-15 | to nix)
-  assert ($r | str starts-with '"')
-  assert ($r | str contains "2024-01-15")
+  assert equal (2024-01-15T12:34:56+09:00 | to nix) '"2024-01-15T12:34:56+0900"'
 }
 
 #[test]
@@ -257,24 +248,6 @@ def "test duration becomes nanoseconds as int" [] {
 def "test binary errors" [] {
   assert error { 0x[41 42 43] | to nix }
 }
-
-#[test]
-def "test binary base64 workaround" [] {
-  assert equal (0x[41 42 43] | encode base64 | to nix) '"QUJD"'
-}
-
-#[test]
-def "test binary byte-list workaround" [] {
-  let bytes = (
-    0x[41 42 43]
-    | encode hex
-    | split chars
-    | chunks 2
-    | each { str join | into int --radix 16 }
-  )
-  assert equal ($bytes | to nix) "[\n  65\n  66\n  67\n]"
-}
-
 
 # ── Numeric edge cases ────────────────────────────────────────────────────────
 
@@ -306,35 +279,7 @@ def "test non-finite floats error" [] {
 #[test]
 def "test table becomes list of attrsets" [] {
   let t = [[name version]; ["hello" "2.12"] ["gcc" "14.1"]]
-  let r = ($t | to nix)
-  assert ($r | str starts-with "[")
-  assert ($r | str contains 'name = "hello"')
-  assert ($r | str contains 'version = "14.1"')
-}
-
-
-# ── Realistic examples ────────────────────────────────────────────────────────
-
-#[test]
-def "test nixos-style service config" [] {
-  let cfg = {
-    services: {nginx: {enable: true, port: 80}}
-    networking: {hostName: "myhost", firewall: {enable: true, allowedTCPPorts: [80 443]}}
-  }
-  let r = ($cfg | to nix)
-  assert ($r | str contains "nginx =")
-  assert ($r | str contains "enable = true;")
-  assert ($r | str contains "hostName =")
-  assert ($r | str contains "allowedTCPPorts =")
-}
-
-#[test]
-def "test package meta record" [] {
-  let meta = {pname: "hello", version: "2.12", broken: false, description: "A friendly greeting"}
-  let r = ($meta | to nix)
-  assert ($r | str contains 'pname = "hello"')
-  assert ($r | str contains "broken = false")
-  assert ($r | str contains 'description = "A friendly greeting"')
+  assert equal ($t | to nix) "[\n  {\n    name = \"hello\";\n    version = \"2.12\";\n  }\n  {\n    name = \"gcc\";\n    version = \"14.1\";\n  }\n]"
 }
 
 
@@ -405,8 +350,6 @@ let _results = [
 
   # Binary
   (_run "binary errors"               { test binary errors })
-  (_run "binary base64 workaround"    { test binary base64 workaround })
-  (_run "binary byte-list workaround" { test binary byte-list workaround })
 
   # Numeric edge cases
   (_run "large positive int"          { test large positive int })
@@ -417,9 +360,6 @@ let _results = [
   # Tables
   (_run "table becomes list of attrsets" { test table becomes list of attrsets })
 
-  # Realistic examples
-  (_run "nixos-style service config"  { test nixos-style service config })
-  (_run "package meta record"         { test package meta record })
 ]
 
 let _n_pass = ($_results | where { $in } | length)

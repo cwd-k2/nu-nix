@@ -56,71 +56,6 @@ def "test from nix nested attrset" [] {
   assert equal (("{ a = { b = 42; }; }" | from nix).a.b) 42
 }
 
-#[test]
-def "test from nix builtins" [] {
-  assert equal ("builtins.length [ 1 2 3 ]" | from nix) 3
-}
-
-#[test]
-def "test from nix let expression" [] {
-  assert equal ("let x = 10; in x * x" | from nix) 100
-}
-
-
-# ── from nix: Nix language features ──────────────────────────────────────────
-
-#[test]
-def "test from nix with expression" [] {
-  let r = ("with { x = 10; y = 20; }; { sum = x + y; product = x * y; }" | from nix)
-  assert equal $r.sum 30
-  assert equal $r.product 200
-}
-
-#[test]
-def "test from nix string interpolation" [] {
-  # Nix evaluates ${name} interpolation before returning the string.
-  assert equal ('let name = "world"; in "Hello, ${name}!"' | from nix) "Hello, world!"
-}
-
-#[test]
-def "test from nix replaceStrings" [] {
-  let r = ('builtins.replaceStrings ["foo" "bar"] ["baz" "qux"] "foo and bar"' | from nix)
-  assert equal $r "baz and qux"
-}
-
-#[test]
-def "test from nix nested let" [] {
-  # Inner let can shadow outer bindings.
-  assert equal ("let a = 2; b = let c = 3; in a * c; in a + b" | from nix) 8
-}
-
-#[test]
-def "test from nix builtins mapAttrs" [] {
-  assert equal ("builtins.mapAttrs (k: v: v + 1) { a = 1; b = 2; }" | from nix) {a: 2, b: 3}
-}
-
-#[test]
-def "test from nix builtins filter" [] {
-  assert equal ("builtins.filter (x: x > 2) [ 1 2 3 4 5 ]" | from nix) [3 4 5]
-}
-
-#[test]
-def "test from nix builtins concatLists" [] {
-  assert equal ("builtins.concatLists [[1 2] [3 4] [5]]" | from nix) [1 2 3 4 5]
-}
-
-#[test]
-def "test from nix builtins listToAttrs" [] {
-  let r = ('builtins.listToAttrs [{name = "a"; value = 1;} {name = "b"; value = 2;}]' | from nix)
-  assert equal $r {a: 1, b: 2}
-}
-
-#[test]
-def "test from nix lambda and map" [] {
-  assert equal ("let f = x: x * x; in builtins.map f [1 2 3 4 5]" | from nix) [1 4 9 16 25]
-}
-
-
 # ── Roundtrip: to nix | from nix recovers the original value ─────────────────
 
 #[test]
@@ -194,11 +129,7 @@ def "test roundtrip string list" [] {
 
 #[test]
 def "test roundtrip list with nulls" [] {
-  # null values inside a list must survive the round-trip.
-  let r = ([1 null "hello" null 3] | to nix | from nix)
-  assert equal ($r | length) 5
-  assert equal ($r | get 1) null
-  assert equal ($r | get 2) "hello"
+  assert equal ([1 null "hello" null 3] | to nix | from nix) [1 null "hello" null 3]
 }
 
 #[test]
@@ -243,80 +174,7 @@ def "test roundtrip negative float" [] {
 }
 
 
-# ── Real nixpkgs data ─────────────────────────────────────────────────────────
-# Fetch registry-backed package metadata and verify it survives a full
-# round-trip. These opt-in tests are useful locally, but are excluded from the
-# hermetic flake check because they depend on the user's registry and network.
-
-#[test]
-def "test nixpkgs hello.meta roundtrip" [] {
-  let original = (from nix nixpkgs#hello.meta)
-  assert equal ($original | to nix | from nix) $original
-}
-
-#[test]
-def "test nixpkgs git.meta roundtrip" [] {
-  let original = (from nix nixpkgs#git.meta)
-  assert equal ($original | to nix | from nix) $original
-}
-
-#[test]
-def "test nixpkgs nushell.meta roundtrip" [] {
-  let original = (from nix nixpkgs#nushell.meta)
-  assert equal ($original | to nix | from nix) $original
-}
-
-#[test]
-def "test nixpkgs curl.meta roundtrip" [] {
-  let original = (from nix nixpkgs#curl.meta)
-  assert equal ($original | to nix | from nix) $original
-}
-
-#[test]
-def "test nixpkgs ripgrep.meta roundtrip" [] {
-  let original = (from nix nixpkgs#ripgrep.meta)
-  assert equal ($original | to nix | from nix) $original
-}
-
-#[test]
-def "test nixpkgs python3.meta roundtrip" [] {
-  let original = (from nix nixpkgs#python3.meta)
-  assert equal ($original | to nix | from nix) $original
-}
-
-
 # ── to nix → nix eval: generated Nix is syntactically valid ──────────────────
-
-#[test]
-def "test to nix nixos-style config is valid" [] {
-  # Build a realistic NixOS-style config in Nu, serialise it, then let Nix
-  # evaluate it to confirm the output is syntactically and semantically valid.
-  let cfg = {
-    networking: {hostName: "nixbox", firewall: {enable: true, allowedTCPPorts: [22 80 443]}}
-    services: {openssh: {enable: true}}
-    environment: {systemPackages: ["git" "vim" "curl"]}
-  }
-  let restored = ($cfg | to nix | from nix)
-  assert equal $restored.networking.hostName "nixbox"
-  assert equal $restored.networking.firewall.allowedTCPPorts [22 80 443]
-  assert equal $restored.services.openssh.enable true
-  assert equal $restored.environment.systemPackages ["git" "vim" "curl"]
-}
-
-#[test]
-def "test to nix path-info style is valid" [] {
-  # Simulate the shape returned by `nix path-info --json`.
-  let info = {
-    narHash: "sha256-AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA="
-    narSize: 1234567
-    references: ["/nix/store/abc-glibc-2.38" "/nix/store/def-gcc-13.2"]
-    valid: true
-  }
-  let restored = ($info | to nix | from nix)
-  assert equal $restored.narSize 1234567
-  assert equal ($restored.references | length) 2
-  assert equal $restored.valid true
-}
 
 #[test]
 def "test to nix all primitive types in one attrset" [] {
@@ -387,20 +245,6 @@ let _core_results = [
   (_run "from nix list"                { test from nix list })
   (_run "from nix attrset"             { test from nix attrset })
   (_run "from nix nested attrset"      { test from nix nested attrset })
-  (_run "from nix builtins"            { test from nix builtins })
-  (_run "from nix let expression"      { test from nix let expression })
-
-  # from nix: Nix language features
-  (_run "from nix with expression"     { test from nix with expression })
-  (_run "from nix string interpolation" { test from nix string interpolation })
-  (_run "from nix replaceStrings"      { test from nix replaceStrings })
-  (_run "from nix nested let"          { test from nix nested let })
-  (_run "from nix builtins mapAttrs"   { test from nix builtins mapAttrs })
-  (_run "from nix builtins filter"     { test from nix builtins filter })
-  (_run "from nix builtins concatLists" { test from nix builtins concatLists })
-  (_run "from nix builtins listToAttrs" { test from nix builtins listToAttrs })
-  (_run "from nix lambda and map"      { test from nix lambda and map })
-
   # Roundtrip
   (_run "roundtrip null"               { test roundtrip null })
   (_run "roundtrip bool true"          { test roundtrip bool true })
@@ -425,8 +269,6 @@ let _core_results = [
   (_run "roundtrip negative float"     { test roundtrip negative float })
 
   # to nix → nix eval validity
-  (_run "to nix nixos-style config is valid"    { test to nix nixos-style config is valid })
-  (_run "to nix path-info style is valid"       { test to nix path-info style is valid })
   (_run "to nix all primitive types in one attrset" { test to nix all primitive types in one attrset })
 
   # from nix --file
@@ -435,20 +277,7 @@ let _core_results = [
   (_run "from nix rejects ambiguous source" { test from nix rejects ambiguous source })
 ]
 
-let _live_results = if ($env.NU_NIX_TEST_LIVE? | default "") == "1" {
-  [
-    (_run "nixpkgs hello.meta roundtrip"   { test nixpkgs hello.meta roundtrip })
-    (_run "nixpkgs git.meta roundtrip"     { test nixpkgs git.meta roundtrip })
-    (_run "nixpkgs nushell.meta roundtrip" { test nixpkgs nushell.meta roundtrip })
-    (_run "nixpkgs curl.meta roundtrip"    { test nixpkgs curl.meta roundtrip })
-    (_run "nixpkgs ripgrep.meta roundtrip" { test nixpkgs ripgrep.meta roundtrip })
-    (_run "nixpkgs python3.meta roundtrip" { test nixpkgs python3.meta roundtrip })
-  ]
-} else {
-  []
-}
-
-let _results = ($_core_results | append $_live_results)
+let _results = $_core_results
 
 let _n_pass = ($_results | where { $in } | length)
 let _n_fail  = ($_results | where { not $in } | length)

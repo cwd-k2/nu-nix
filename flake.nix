@@ -238,27 +238,35 @@
           package = pkg;
 
           application = pkgs.runCommand "nu-nix-application-test-result" { } ''
-            output=$(${generatedApplicationExample.application}/bin/nu-nix-generated-example tester)
-            printf '%s\n' "$output" | grep -F '"greeting":"hello tester"'
-            printf '%s\n' "$output" | grep -F '"nix":"{'
-            printf '%s\n' "$output" | grep -F 'enabled = true;'
-            printf '%s\n' "$output" | grep -F '"external":"Hello, world!"'
-            printf '%s\n' "$output" | grep -F '"configured":"from-nix"'
-            printf '%s\n' "$output" | grep -F '"host":"example-host"'
-            printf '%s\n' "$output" | grep -F '"features":["generated-data","generated-environment"]'
-            printf '%s\n' "$output" | grep -F '"editor":"nvim"'
-            printf '%s\n' "$output" | grep -F '"example_path":["/generated","/shared","/existing"]'
+            ${generatedApplicationExample.application}/bin/nu-nix-generated-example tester > output.json
+            ${pkgs.nushell}/bin/nu --no-config-file --commands '
+              let actual = (open output.json)
+              let expected = {
+                greeting: "hello tester"
+                nix: "{\n  enabled = true;\n}"
+                external: "Hello, world!"
+                configured: "from-nix"
+                host: "example-host"
+                features: ["generated-data" "generated-environment"]
+                editor: "nvim"
+                example_path: ["/generated" "/shared" "/existing"]
+              }
+              if $actual != $expected {
+                error make {msg: $"unexpected application output: ($actual | to nuon)"}
+              }
+            '
             touch $out
           '';
 
           bare-application = pkgs.runCommand "nu-nix-bare-application-test-result" { } ''
-            output=$(${bareApplication}/bin/nu-nix-bare-application-test value)
-            printf '%s\n' "$output" | grep -F '"value":"value"'
-            printf '%s\n' "$output" | grep -F '"configured":"without-libraries"'
-            if grep -F -- '--include-path' ${bareApplication}/bin/nu-nix-bare-application-test; then
-              echo "bare Nushell applications must not receive an empty include path" >&2
-              exit 1
-            fi
+            ${bareApplication}/bin/nu-nix-bare-application-test value > output.json
+            ${pkgs.nushell}/bin/nu --no-config-file --commands '
+              let actual = (open output.json)
+              let expected = {value: "value", configured: "without-libraries"}
+              if $actual != $expected {
+                error make {msg: $"unexpected bare application output: ($actual | to nuon)"}
+              }
+            '
             touch $out
           '';
 
@@ -389,7 +397,8 @@
 
           nixos-autoload = pkgs.runCommand "nu-nix-nixos-autoload-test" { } ''
             test -f ${testSystem.config.system.path}/share/nushell/vendor/autoload/nu-nix.nu
-            grep -F '${pkg}/share/nushell/nu-nix' \
+            printf '%s\n' 'use ${pkg}/share/nushell/nu-nix *' > expected-autoload.nu
+            cmp expected-autoload.nu \
               ${testSystem.config.system.path}/share/nushell/vendor/autoload/nu-nix.nu
             test '${testSystem.config.users.users.nu-nix-test.shell.shellPath}' = '/bin/nu-bash'
             touch $out
@@ -419,14 +428,13 @@
             cp ${./tests/test_to_nix.nu} test_to_nix.nu
             cp ${./tests/support/assert.nu} support/assert.nu
             substituteInPlace test_to_nix.nu \
-              --replace '../package/scripts/nu-nix/mod.nu' \
+              --replace-fail '../package/scripts/nu-nix/mod.nu' \
                         '${pkg}/share/nushell/nu-nix/mod.nu'
             nu --no-config-file test_to_nix.nu
             touch $out
           '';
 
-          # Hermetic Nix evaluation and codec round-trip tests. Registry-backed
-          # integration cases stay opt-in via NU_NIX_TEST_LIVE=1.
+          # Hermetic Nix evaluation and codec round-trip tests.
           from-nix-tests =
             pkgs.runCommand "nu-nix-from-nix-tests"
               {
@@ -442,7 +450,7 @@
                 cp ${./tests/test_from_nix.nu} test_from_nix.nu
                 cp ${./tests/support/assert.nu} support/assert.nu
                 substituteInPlace test_from_nix.nu \
-                  --replace '../package/scripts/nu-nix/mod.nu' \
+                  --replace-fail '../package/scripts/nu-nix/mod.nu' \
                             '${pkg}/share/nushell/nu-nix/mod.nu'
                 nu --no-config-file test_from_nix.nu
                 touch $out

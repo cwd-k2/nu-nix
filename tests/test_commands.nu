@@ -6,9 +6,10 @@ let builds = ([{
   drvPath: "/nix/store/example.drv"
   outputs: {out: "/nix/store/example", dev: "/nix/store/example-dev"}
 }] | normalize-build)
-assert equal ($builds | length) 2
-assert equal ($builds | where output == out | get path.0) "/nix/store/example"
-assert equal ($builds | get drvPath | uniq) ["/nix/store/example.drv"]
+assert equal $builds [
+  {output: "out", path: "/nix/store/example", drvPath: "/nix/store/example.drv"}
+  {output: "dev", path: "/nix/store/example-dev", drvPath: "/nix/store/example.drv"}
+]
 
 let searches = ({
   "legacyPackages.x86_64-linux.hello": {
@@ -18,22 +19,32 @@ let searches = ({
     license: "GPL-3.0-or-later"
   }
 } | normalize-search)
-assert equal $searches.0.attr "legacyPackages.x86_64-linux.hello"
-assert equal $searches.0.license "GPL-3.0-or-later"
+assert equal $searches [{
+  pname: "hello"
+  version: "2.12"
+  description: "A greeting"
+  license: "GPL-3.0-or-later"
+  attr: "legacyPackages.x86_64-linux.hello"
+}]
 
 let paths = ({
   "/nix/store/example": {narSize: 123, references: ["/nix/store/ref"]}
   "/nix/store/missing": {}
 } | normalize-path-info)
-assert equal $paths.0.path "/nix/store/example"
-assert equal $paths.0.narSize 123
-assert equal ($paths | length) 1
+assert equal $paths [{
+  narSize: 123
+  references: ["/nix/store/ref"]
+  path: "/nix/store/example"
+}]
 
 let environment = ({variables: {
   PATH: {type: "array", value: ["/bin"]}
   EDITOR: {type: "var", value: "nvim"}
 }} | normalize-dev-environment)
-assert equal ($environment | where name == EDITOR | get value.0) "nvim"
+assert equal $environment [
+  {type: "array", value: ["/bin"], name: "PATH"}
+  {type: "var", value: "nvim", name: "EDITOR"}
+]
 
 let activation = ({
   variables: {
@@ -43,17 +54,22 @@ let activation = ({
     shellHook: {type: "var", value: "echo ignored"}
   }
 } | normalize-dev-activation)
-assert equal $activation.updates.PATH ["/nix/store/one/bin" "/nix/store/two/bin"]
-assert equal $activation.updates.EDITOR "nvim"
-assert ("HOME" not-in ($activation.updates | columns))
-assert ("HOME" in $activation.skipped)
-assert ("shellHook" in $activation.skipped)
+assert equal $activation {
+  updates: {
+    PATH: ["/nix/store/one/bin" "/nix/store/two/bin"]
+    EDITOR: "nvim"
+  }
+  skipped: ["HOME" "shellHook"]
+}
 
 let profile = ({elements: {
   hello: {storePaths: ["/nix/store/hello"], active: true}
 }} | normalize-profile)
-assert equal $profile.0.name "hello"
-assert equal $profile.0.active true
+assert equal $profile [{
+  storePaths: ["/nix/store/hello"]
+  active: true
+  name: "hello"
+}]
 
 let profile_diff = (normalize-profile-diff {
   elements: {
@@ -86,9 +102,9 @@ let closure_diff = (normalize-closure-diff {
   "/nix/store/new": {narSize: 120, closureSize: 360}
   "/nix/store/shared": {narSize: 50, closureSize: 50}
 })
+assert equal ($closure_diff | get path) ["/nix/store/new" "/nix/store/old"]
 assert equal ($closure_diff | where path == "/nix/store/new" | get narSizeDelta.0) 120
 assert equal ($closure_diff | where path == "/nix/store/old" | get narSizeDelta.0) (-100)
-assert ("/nix/store/shared" not-in ($closure_diff | get path))
 
 let outputs = ({
   packages: {
@@ -109,6 +125,15 @@ let outputs = ({
     helper: {type: "unknown"}
   }
 } | normalize-flake-show)
+
+assert equal ($outputs | get path) [
+  "packages.x86_64-linux.type"
+  "packages.x86_64-linux.x86_64-linux"
+  "packages.x86_64-linux.scope.hello"
+  "formatter.x86_64-linux"
+  "homeManagerModules"
+  "linux-tools.helper"
+]
 
 let hello = ($outputs | where path == "packages.x86_64-linux.scope.hello" | first)
 assert equal $hello.system "x86_64-linux"
@@ -136,11 +161,10 @@ let false_positive = ($outputs | where path == "linux-tools.helper" | first)
 assert equal $false_positive.system null
 assert equal $false_positive.name "helper"
 
-assert ("packages.x86_64-linux.omitted" not-in ($outputs | get path))
-
 let completions = (format-flake-completions ".#sc" $outputs [packages])
-assert equal ($completions | get value) [".#scope.hello"]
-assert ($completions.0.description | str contains "derivation")
-assert ($completions.0.description | str contains "A greeting")
+assert equal $completions [{
+  value: ".#scope.hello"
+  description: "derivation · x86_64-linux · A greeting"
+}]
 
 print "structured command normalizers passed"

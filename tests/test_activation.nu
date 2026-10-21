@@ -6,18 +6,18 @@ let original_home = $env.HOME
 $env.NU_NIX_EXISTING = "before"
 
 let first = (nu-nix activate fixture)
-assert equal ($env.PATH | first 2) [
+assert equal $env.PATH ([
   "/nix/store/fixture-one/bin"
   "/nix/store/fixture-two/bin"
-]
-assert ($original_path | all {|entry| $entry in $env.PATH })
+] | append $original_path | uniq)
 assert equal $env.NU_NIX_EXISTING "from-dev-environment"
 assert equal $env.NU_NIX_NEW "new-value"
 assert equal $env.HOME $original_home
-assert ("HOME" in $first.skipped)
-assert ("NU_NIX_ACTIVATION_STACK" in $first.skipped)
-assert ("shellHook" in $first.skipped)
-assert equal $first.ignoredBashFunctions ["fixtureHook"]
+assert equal $first {
+  applied: ["PATH" "NU_NIX_EXISTING" "NU_NIX_NEW"]
+  skipped: ["NU_NIX_ACTIVATION_STACK" "HOME" "shellHook"]
+  ignoredBashFunctions: ["fixtureHook"]
+}
 
 nu-nix activate fixture | ignore
 nu-nix deactivate
