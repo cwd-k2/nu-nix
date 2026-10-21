@@ -77,6 +77,28 @@
               cat ${./tests/fixtures/dev-env.json}
             '';
           };
+          fakeJsonNix = pkgs.writeShellApplication {
+            name = "nix";
+            text = ''
+              case "''${1-}" in
+                success)
+                  printf '%s\n' '{"answer":42}'
+                  ;;
+                fail)
+                  printf '%s\n' 'not json' >&1
+                  printf '%s\n' 'fixture nix failure' >&2
+                  exit 23
+                  ;;
+                malformed)
+                  printf '%s\n' '{'
+                  ;;
+                *)
+                  printf '%s\n' 'unexpected fake nix invocation' >&2
+                  exit 2
+                  ;;
+              esac
+            '';
+          };
           generatedValueModule = self.lib.mkNuModuleFromValue {
             inherit pkgs;
             name = "generated-values";
@@ -423,6 +445,24 @@
                 cp ${./tests/test_commands.nu} tests/test_commands.nu
                 cp ${./tests/support/assert.nu} tests/support/assert.nu
                 nu --no-config-file tests/test_commands.nu
+                touch $out
+              '';
+
+          internal-tests =
+            pkgs.runCommand "nu-nix-internal-tests"
+              {
+                nativeBuildInputs = [
+                  fakeJsonNix
+                  pkgs.nushell
+                ];
+              }
+              ''
+                mkdir -p tests/support
+                cp ${./tests/test_internal.nu} tests/test_internal.nu
+                cp ${./tests/support/assert.nu} tests/support/assert.nu
+                substituteInPlace tests/test_internal.nu \
+                  --replace-fail 'MODULE' '${pkg}/share/nushell/nu-nix/internal.nu'
+                nu --no-config-file tests/test_internal.nu
                 touch $out
               '';
 
