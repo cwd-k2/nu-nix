@@ -3,5 +3,6 @@ use MODULE *
 
 let dependency_tree = (nu-nix why-depends /nix/store/example /nix/store/dependency | str trim)
 assert equal $dependency_tree "native dependency tree"
+assert error { nu-nix why-depends unexpected }
 
 print "native Nix text pass-through passed"

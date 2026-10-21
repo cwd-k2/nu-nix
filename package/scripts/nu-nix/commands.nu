@@ -10,7 +10,7 @@
 # Raw nix pass-through:  ^nix <subcommand>  (external, text output)
 # Nu-integrated:         nu-nix <subcommand> (this module, Nu values)
 
-use internal.nu [enabled-nix-options run-nix-json]
+use internal.nu [enabled-nix-options run-external-text run-nix-json]
 use normalize.nu *
 use completions.nu [complete-build complete-dev-shell complete-shell]
 
@@ -93,7 +93,7 @@ export def --wrapped "nu-nix derivation show" [...rest: string] {
 # `nix why-depends` has no machine-readable output, so this command deliberately
 # remains a text pass-through instead of pretending to return structured data.
 export def --wrapped "nu-nix why-depends" [...rest: string] {
-  ^nix why-depends ...$rest
+  run-external-text nix why-depends ...$rest
 }
 
 # ── Dev environment ───────────────────────────────────────────────────────────
