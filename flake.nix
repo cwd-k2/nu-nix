@@ -110,6 +110,31 @@
               printf '%s\n' 'native dependency tree'
             '';
           };
+          fakeLegacyNix = pkgs.symlinkJoin {
+            name = "nu-nix-fake-legacy-commands";
+            paths = [
+              (pkgs.writeShellScriptBin "nix-build" ''
+                if [[ "''${1-}" == fail ]]; then
+                  exit 17
+                fi
+                printf '%s\n' /nix/store/example-one /nix/store/example-two
+              '')
+              (pkgs.writeShellScriptBin "nix-channel" ''
+                if [[ "$*" != --list ]]; then
+                  exit 2
+                fi
+                printf '%s\n' \
+                  'first   https://example.test/first' \
+                  $'second\thttps://example.test/second'
+              '')
+              (pkgs.writeShellScriptBin "nix-prefetch-url" ''
+                printf 'sha256-prefetched\n\n'
+              '')
+              (pkgs.writeShellScriptBin "nix-hash" ''
+                printf 'sha256-hashed\n\n'
+              '')
+            ];
+          };
           generatedValueModule = self.lib.mkNuModuleFromValue {
             inherit pkgs;
             name = "generated-values";
@@ -511,6 +536,24 @@
                 substituteInPlace tests/test_passthrough.nu \
                   --replace-fail 'MODULE' '${pkg}/share/nushell/nu-nix/mod.nu'
                 nu --no-config-file tests/test_passthrough.nu
+                touch $out
+              '';
+
+          legacy-wrappers =
+            pkgs.runCommand "nu-nix-legacy-wrappers-test"
+              {
+                nativeBuildInputs = [
+                  fakeLegacyNix
+                  pkgs.nushell
+                ];
+              }
+              ''
+                mkdir -p tests/support
+                cp ${./tests/test_legacy.nu} tests/test_legacy.nu
+                cp ${./tests/support/assert.nu} tests/support/assert.nu
+                substituteInPlace tests/test_legacy.nu \
+                  --replace-fail 'MODULE' '${pkg}/share/nushell/nu-nix/mod.nu'
+                nu --no-config-file tests/test_legacy.nu
                 touch $out
               '';
 

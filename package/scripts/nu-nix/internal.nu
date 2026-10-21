@@ -6,17 +6,17 @@ export def enabled-nix-options [options: record]: nothing -> list<string> {
   | get option
 }
 
-export def --wrapped run-nix-json [...args: string]: nothing -> any {
-  let result = (do { ^nix ...$args } | complete)
+export def --wrapped run-external-text [command: string, ...args: string]: nothing -> string {
+  let result = (do { run-external $command ...$args } | complete)
   if $result.exit_code != 0 {
     let message = ($result.stderr | str trim)
     error make {
       msg: (if ($message | is-empty) {
-        $"nix exited with status ($result.exit_code)"
+        $"($command) exited with status ($result.exit_code)"
       } else {
         $message
       })
-      help: $"command: nix ($args | str join ' ')"
+      help: $"command: ($command) ($args | str join ' ')"
     }
   }
 
@@ -24,8 +24,14 @@ export def --wrapped run-nix-json [...args: string]: nothing -> any {
     print --stderr --no-newline $result.stderr
   }
 
+  $result.stdout
+}
+
+export def --wrapped run-nix-json [...args: string]: nothing -> any {
+  let stdout = (run-external-text nix ...$args)
+
   try {
-    $result.stdout | from json
+    $stdout | from json
   } catch {|parse_error|
     error make {
       msg: "nix returned malformed JSON"
