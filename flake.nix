@@ -40,6 +40,7 @@
         let
           system = pkgs.stdenv.hostPlatform.system;
           pkg = self.packages.${system}.default;
+          evaluationFails = value: !(builtins.tryEval value).success;
           generatedApplicationExample = import ./examples/generated-application/default.nix {
             inherit pkgs;
             nu-nix = self;
@@ -245,125 +246,97 @@
               '';
 
           builder-validation =
-            assert
-              !(builtins.tryEval (
-                (self.lib.mkNuModuleFromValue {
-                  inherit pkgs;
-                  name = "invalid-value-module";
-                  values."invalid.name" = true;
-                }).drvPath
-              )).success;
-            assert
-              !(builtins.tryEval (
-                (self.lib.mkNuEnvModule {
-                  inherit pkgs;
-                  name = "invalid-env-name-module";
-                  variables."invalid.name" = true;
-                }).drvPath
-              )).success;
-            assert
-              !(builtins.tryEval (
-                (self.lib.mkNuEnvModule {
-                  inherit pkgs;
-                  name = "invalid-env-path-entry-module";
-                  prependPath.PATH = [ 42 ];
-                }).drvPath
-              )).success;
-            assert
-              !(builtins.tryEval (
-                (self.lib.mkNuEnvModule {
-                  inherit pkgs;
-                  name = "invalid-env-module";
-                  prependPath.PATH = "/not-a-list";
-                }).drvPath
-              )).success;
-            assert
-              !(builtins.tryEval (
-                (self.lib.mkNuEnvModule {
-                  inherit pkgs;
-                  name = "ambiguous-env-module";
-                  prependPath.PATH = [ "/first" ];
-                  appendPath.PATH = [ "/last" ];
-                }).drvPath
-              )).success;
-            assert
-              !(builtins.tryEval (
-                (self.lib.mkNuModule {
-                  inherit pkgs;
-                  name = "../invalid-module";
-                  src = ./tests/bare-application;
-                }).drvPath
-              )).success;
-            assert
-              !(builtins.tryEval (
-                (self.lib.mkNuApplication {
-                  inherit pkgs;
-                  name = "../invalid-application";
-                  src = ./tests/bare-application;
-                }).drvPath
-              )).success;
-            assert
-              !(builtins.tryEval (
-                (self.lib.mkNuApplication {
-                  inherit pkgs;
-                  name = "invalid-entrypoint-application";
-                  src = ./tests/bare-application;
-                  entrypoint = "../main.nu";
-                }).drvPath
-              )).success;
-            assert
-              !(builtins.tryEval (
-                (self.lib.mkNuApplication {
-                  inherit pkgs;
-                  name = "invalid-environment-name-application";
-                  src = ./tests/bare-application;
-                  environment."invalid.name" = "value";
-                }).drvPath
-              )).success;
-            assert
-              !(builtins.tryEval (
-                (self.lib.mkNuApplication {
-                  inherit pkgs;
-                  name = "invalid-environment-value-application";
-                  src = ./tests/bare-application;
-                  environment.INVALID_VALUE = [
-                    "not"
-                    "a string"
-                  ];
-                }).drvPath
-              )).success;
-            assert
-              !(builtins.tryEval (
-                (self.lib.runNuCommand {
-                  inherit pkgs;
-                  name = "../invalid-command";
-                  script = ./tests/run-command.nu;
-                }).drvPath
-              )).success;
-            assert
-              !(builtins.tryEval (
-                (self.lib.runNuCommand {
-                  inherit pkgs;
-                  name = "missing-command-script";
-                }).drvPath
-              )).success;
-            assert
-              !(builtins.tryEval (
-                (self.lib.runNuCommand {
-                  inherit pkgs;
-                  name = "ambiguous-command-script";
-                  scriptFile = ./tests/run-command.nu;
-                  scriptText = "print ambiguous";
-                }).drvPath
-              )).success;
-            assert
-              !(builtins.tryEval (
-                (self.lib.runNuCommand {
-                  inherit pkgs;
-                  name = "invalid-command-script";
-                  script = [ ./tests/run-command.nu ];
-                }).drvPath
-              )).success;
+            assert evaluationFails
+              (self.lib.mkNuModuleFromValue {
+                inherit pkgs;
+                name = "invalid-value-module";
+                values."invalid.name" = true;
+              }).drvPath;
+            assert evaluationFails
+              (self.lib.mkNuEnvModule {
+                inherit pkgs;
+                name = "invalid-env-name-module";
+                variables."invalid.name" = true;
+              }).drvPath;
+            assert evaluationFails
+              (self.lib.mkNuEnvModule {
+                inherit pkgs;
+                name = "invalid-env-path-entry-module";
+                prependPath.PATH = [ 42 ];
+              }).drvPath;
+            assert evaluationFails
+              (self.lib.mkNuEnvModule {
+                inherit pkgs;
+                name = "invalid-env-module";
+                prependPath.PATH = "/not-a-list";
+              }).drvPath;
+            assert evaluationFails
+              (self.lib.mkNuEnvModule {
+                inherit pkgs;
+                name = "ambiguous-env-module";
+                prependPath.PATH = [ "/first" ];
+                appendPath.PATH = [ "/last" ];
+              }).drvPath;
+            assert evaluationFails
+              (self.lib.mkNuModule {
+                inherit pkgs;
+                name = "../invalid-module";
+                src = ./tests/bare-application;
+              }).drvPath;
+            assert evaluationFails
+              (self.lib.mkNuApplication {
+                inherit pkgs;
+                name = "../invalid-application";
+                src = ./tests/bare-application;
+              }).drvPath;
+            assert evaluationFails
+              (self.lib.mkNuApplication {
+                inherit pkgs;
+                name = "invalid-entrypoint-application";
+                src = ./tests/bare-application;
+                entrypoint = "../main.nu";
+              }).drvPath;
+            assert evaluationFails
+              (self.lib.mkNuApplication {
+                inherit pkgs;
+                name = "invalid-environment-name-application";
+                src = ./tests/bare-application;
+                environment."invalid.name" = "value";
+              }).drvPath;
+            assert evaluationFails
+              (self.lib.mkNuApplication {
+                inherit pkgs;
+                name = "invalid-environment-value-application";
+                src = ./tests/bare-application;
+                environment.INVALID_VALUE = [
+                  "not"
+                  "a string"
+                ];
+              }).drvPath;
+            assert evaluationFails
+              (self.lib.runNuCommand {
+                inherit pkgs;
+                name = "../invalid-command";
+                script = ./tests/run-command.nu;
+              }).drvPath;
+            assert evaluationFails
+              (self.lib.runNuCommand {
+                inherit pkgs;
+                name = "missing-command-script";
+              }).drvPath;
+            assert evaluationFails
+              (self.lib.runNuCommand {
+                inherit pkgs;
+                name = "ambiguous-command-script";
+                scriptFile = ./tests/run-command.nu;
+                scriptText = "print ambiguous";
+              }).drvPath;
+            assert evaluationFails
+              (self.lib.runNuCommand {
+                inherit pkgs;
+                name = "invalid-command-script";
+                script = [ ./tests/run-command.nu ];
+              }).drvPath;
             pkgs.runCommand "nu-nix-builder-validation" { } "touch $out";
 
           package-autoload-shape = pkgs.runCommand "nu-nix-package-autoload-shape-test" { } ''

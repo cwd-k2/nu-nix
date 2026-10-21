@@ -40,20 +40,22 @@ in
   config = lib.mkIf cfg.enable (
     lib.mkMerge [
       {
-        environment.systemPackages = [
-          pkgs.nushell
-          cfg.package
-        ];
+        environment = {
+          systemPackages = [
+            pkgs.nushell
+            cfg.package
+          ];
 
-        # Make the module and vendor autoload files visible in the system
-        # profile, which Nushell searches via XDG_DATA_DIRS.
-        environment.pathsToLink = [ "/share/nushell" ];
+          # Make the module and vendor autoload files visible in the system
+          # profile, which Nushell searches via XDG_DATA_DIRS.
+          pathsToLink = [ "/share/nushell" ];
 
-        # Register nu-bash as a valid login shell.
-        environment.shells = [
-          cfg.package
-          pkgs.bashInteractive
-        ];
+          # Register nu-bash as a valid login shell.
+          shells = [
+            cfg.package
+            pkgs.bashInteractive
+          ];
+        };
       }
 
       (lib.mkIf cfg.autoLoad {

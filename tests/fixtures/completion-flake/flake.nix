@@ -1,5 +1,5 @@
 {
-  outputs = { ... }: {
+  outputs = _: {
     packages = {
       x86_64-linux = {
         alpha = null;
