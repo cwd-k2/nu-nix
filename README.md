@@ -143,7 +143,7 @@ flows as Nu values through the pipeline:
 
 ```nushell
 nu-nix search nixpkgs python | where version >= "3.11" | to nix
-nu-nix profile list | select name | each { get storePaths } | flatten
+nu-nix profile list | get storePaths | flatten
 nu-nix flake show | where type == "packages" and system == "x86_64-linux"
 ```
 

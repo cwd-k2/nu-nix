@@ -1,16 +1,14 @@
 # Tests for `from nix` and roundtrip (`to nix | from nix`) — requires Nix in PATH.
 #
-# Each test is a function annotated with #[test], following the nushell
-# std testing convention.  The runner at the bottom of this file is a
-# temporary workaround: nushell 0.113.1 does not ship a working
-# `std testing run-tests` command.
+# Each test is a function annotated with #[test], following the Nushell
+# testing convention. The self-contained runner at the bottom keeps the flake
+# check independent of third-party test runners.
 #
 # Run now:
 #   nu tests/test_from_nix.nu
 #
-# Run once a proper runner is available:
+# The annotations also allow external runners:
 #   nutest run tests/
-#   nu -c 'use std testing; testing run-tests --path tests/'
 
 use ./support/assert.nu
 use ../package/scripts/nu-nix/mod.nu *
@@ -365,13 +363,7 @@ def "test from nix rejects ambiguous source" [] {
 
 
 # ── Runner ────────────────────────────────────────────────────────────────────
-# Temporary workaround: nushell 0.113.1 does not ship a working
-# `std testing run-tests` command.  This section dispatches every test
-# function above and can be deleted once a proper runner is available.
-#
-# To use a proper runner (when available):
-#   nutest run tests/
-#   nu -c 'use std testing; testing run-tests --path tests/'
+# Self-contained dispatch for hermetic flake checks.
 
 def _run [name: string, f: closure]: nothing -> bool {
   try {
