@@ -22,9 +22,12 @@ let
         exec "$bash" "$@"
       fi
 
-      # Human interactive terminals get Nushell.
-      if [ -t 0 ] && [ -t 1 ]; then
-        exec "$nu"
+      # Follow the usual interactive-shell convention: stdin and stderr must
+      # be terminals. stdout may legitimately be redirected by the user.
+      # This package is registered as a login shell, so preserve that mode
+      # when handing the session to Nushell.
+      if [ -t 0 ] && [ -t 2 ]; then
+        exec "$nu" --login
       fi
 
       exec "$bash"

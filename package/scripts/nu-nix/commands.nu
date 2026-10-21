@@ -89,9 +89,11 @@ export def --wrapped "nu-nix derivation show" [...rest: string] {
   run-nix-json derivation show ...$rest | normalize-derivations
 }
 
-# Show dependency chain between two store paths.
+# Show Nix's native dependency tree between two store paths.
+# `nix why-depends` has no machine-readable output, so this command deliberately
+# remains a text pass-through instead of pretending to return structured data.
 export def --wrapped "nu-nix why-depends" [...rest: string] {
-  run-nix-json why-depends --json ...$rest
+  ^nix why-depends ...$rest
 }
 
 # ── Dev environment ───────────────────────────────────────────────────────────

@@ -108,6 +108,11 @@ def "test string antiquote" [] {
   assert equal ('${HOME}' | to nix) '"\${HOME}"'
 }
 
+#[test]
+def "test string NUL errors" [] {
+  assert error { (char nul) | to nix }
+}
+
 
 # ── Lists ─────────────────────────────────────────────────────────────────────
 
@@ -361,6 +366,7 @@ let _results = [
   (_run "string tab"                  { test string tab })
   (_run "string carriage return"      { test string carriage return })
   (_run "string antiquote"            { test string antiquote })
+  (_run "string NUL errors"           { test string NUL errors })
 
   # Lists
   (_run "empty list"                  { test empty list })

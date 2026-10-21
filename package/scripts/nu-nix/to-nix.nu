@@ -28,7 +28,13 @@ def ind [n: int]: nothing -> string {
 
 # Wrap a string in Nix double-quote syntax, escaping all special characters.
 def nix-string []: string -> string {
-  let body = ($in
+  let value = $in
+  if ($value | str contains (char nul)) {
+    error make {
+      msg: "strings containing NUL cannot be represented as Nix strings"
+    }
+  }
+  let body = ($value
     | str replace --all "\\" "\\\\"   # must come first to avoid double-escaping
     | str replace --all "\"" "\\\""
     | str replace --all "\n" "\\n"

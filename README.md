@@ -130,12 +130,19 @@ nu-nix search nixpkgs jq               # → package table
 nu-nix path-info /nix/store/…          # → store path details
 nu-nix closure .#package               # → recursive closure and size details
 nu-nix print-dev-env                    # → env var table
-nu-nix why-depends /nix/store/… /…     # → dependency chain
 nu-nix flake show                       # → flake output table
 nu-nix flake metadata                   # → flake info record
 nu-nix derivation show                  # → derivation details table
 nu-nix profile list                     # → installed packages table
 nu-nix profile diff old-link new-link   # → profile generation changes
+```
+
+`nix why-depends` does not provide a machine-readable output format. Its
+wrapper therefore preserves Nix's native text tree instead of presenting it as
+structured data:
+
+```nushell
+nu-nix why-depends /nix/store/… /nix/store/…
 ```
 
 Because these are module functions (not an external binary), their output

@@ -100,6 +100,16 @@
               esac
             '';
           };
+          fakeWhyDependsNix = pkgs.writeShellApplication {
+            name = "nix";
+            text = ''
+              if [[ "$*" != "why-depends /nix/store/example /nix/store/dependency" ]]; then
+                echo "unexpected fake nix invocation: $*" >&2
+                exit 1
+              fi
+              printf '%s\n' 'native dependency tree'
+            '';
+          };
           generatedValueModule = self.lib.mkNuModuleFromValue {
             inherit pkgs;
             name = "generated-values";
@@ -476,6 +486,52 @@
                   --replace-fail 'MODULE' '${pkg}/share/nushell/nu-nix/mod.nu' \
                   --replace-fail 'FIXTURE' '${./tests/fixtures/completion-flake}'
                 nu --no-config-file tests/test_completions.nu
+                touch $out
+              '';
+
+          why-depends-passthrough =
+            pkgs.runCommand "nu-nix-why-depends-passthrough-test"
+              {
+                nativeBuildInputs = [
+                  fakeWhyDependsNix
+                  pkgs.nushell
+                ];
+              }
+              ''
+                mkdir -p tests/support
+                cp ${./tests/test_passthrough.nu} tests/test_passthrough.nu
+                cp ${./tests/support/assert.nu} tests/support/assert.nu
+                substituteInPlace tests/test_passthrough.nu \
+                  --replace-fail 'MODULE' '${pkg}/share/nushell/nu-nix/mod.nu'
+                nu --no-config-file tests/test_passthrough.nu
+                touch $out
+              '';
+
+          nu-bash-login =
+            pkgs.runCommand "nu-bash-login-test"
+              {
+                nativeBuildInputs = [
+                  pkgs.coreutils
+                  pkgs.util-linux
+                ];
+              }
+              ''
+                export HOME="$PWD/home"
+                export XDG_CONFIG_HOME="$PWD/config"
+                export NU_BASH_TEST_RESULT="$PWD/login-result"
+                mkdir -p "$HOME" "$XDG_CONFIG_HOME/nushell"
+
+                printf '%s\n' \
+                  '$nu.is-login | save --force $env.NU_BASH_TEST_RESULT' \
+                  'exit' \
+                  > "$XDG_CONFIG_HOME/nushell/login.nu"
+
+                timeout 10 script -qefc \
+                  '${pkg}/bin/nu-bash > nu-stdout' \
+                  /dev/null \
+                  < /dev/null
+
+                test "$(cat "$NU_BASH_TEST_RESULT")" = true
                 touch $out
               '';
         }

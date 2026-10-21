@@ -92,8 +92,8 @@ print ($original == $restored)   # => true
 
 # Build a NixOS-style config from Nu data and write to a file
 let users = [
-  {name: "alice", groups: ["wheel" "docker"], shell: "nushell"}
-  {name: "bob",   groups: ["audio"],          shell: "bash"}
+  {name: "alice", groups: ["wheel" "docker"]}
+  {name: "bob",   groups: ["audio"]}
 ]
 
 $users
@@ -102,7 +102,6 @@ $users
         ($u.name): {
           isNormalUser: true
           extraGroups: $u.groups
-          shell: $"pkgs.($u.shell)"
         }
       }
     }
