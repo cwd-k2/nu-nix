@@ -181,11 +181,12 @@ nu-nix activate .#<Tab>    # devShells for the current system
 nu-nix build --<Tab>       # common build/evaluation flags
 ```
 
-Output completion uses a shallow `nix eval ... --apply builtins.attrNames`, so
-it does not force every flake output. Completion only evaluates a flake when
-the reference before `#` is an existing local path; it never starts a remote
-fetch merely because Tab was pressed. Other arguments fall back to Nushell's
-built-in completion behavior.
+Output completion uses an offline, lock-file-preserving
+`nix eval ... --apply builtins.attrNames`, so it does not force every flake
+output. Completion only evaluates a flake when the reference before `#` is an
+existing local path. Missing inputs produce no candidates instead of causing a
+network fetch, and completion never changes `flake.lock`. Other arguments fall
+back to Nushell's built-in completion behavior.
 
 ### Nix ↔ Nu value conversion
 

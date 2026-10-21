@@ -34,7 +34,7 @@ def completion-token [input: any]: nothing -> string {
 
 def local-output-rows [target: string, output_type: string, system: string]: nothing -> table {
   let names = (try {
-    ^nix --quiet eval --json $"($target)#($output_type).($system)" --apply builtins.attrNames
+    ^nix --quiet eval --offline --no-write-lock-file --json $"($target)#($output_type).($system)" --apply builtins.attrNames
     | from json
   } catch {
     []
