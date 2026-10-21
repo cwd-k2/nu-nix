@@ -21,6 +21,7 @@
 
 let
   support = import ./builder-support.nix { inherit lib; };
+  sourceDirectory = "${src}/.";
   includePath = support.mkNuLibraryPath { inherit nuLibraries nuLibDirs; };
   invalidEnvironmentNames = builtins.filter (variable: !support.validEnvironmentName variable) (
     lib.attrNames environment
@@ -73,14 +74,14 @@ runCommand name
   }
   ''
     mkdir -p "$out/bin" "$out/libexec/${name}"
-    cp -R ${src}/. "$out/libexec/${name}/"
+    cp -R ${lib.escapeShellArg sourceDirectory} "$out/libexec/${name}/"
 
     if [[ ! -f "$out/libexec/${name}/${entrypoint}" ]]; then
       echo "Nushell application ${name} does not provide ${entrypoint}" >&2
       exit 1
     fi
 
-    makeWrapper ${lib.getExe nushell} "$out/bin/${name}" \
+    makeWrapper ${lib.escapeShellArg (lib.getExe nushell)} "$out/bin/${name}" \
       ${lib.escapeShellArgs wrapperArgs} \
       --add-flags "$out/libexec/${name}/${entrypoint}"
   ''

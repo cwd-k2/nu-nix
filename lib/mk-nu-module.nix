@@ -13,6 +13,7 @@
 
 let
   support = import ./builder-support.nix { inherit lib; };
+  sourceDirectory = "${src}/.";
 in
 assert lib.assertMsg (support.validName name)
   "Nushell module names must be safe path basenames; invalid name: ${builtins.toJSON name}";
@@ -23,7 +24,7 @@ runCommand "${name}-nu-module"
   ''
     module_directory="$out/share/nushell/${name}"
     mkdir -p "$module_directory"
-    cp -R ${src}/. "$module_directory/"
+    cp -R ${lib.escapeShellArg sourceDirectory} "$module_directory/"
 
     if [[ ! -f "$module_directory/mod.nu" ]]; then
       echo "Nushell module ${name} does not provide mod.nu" >&2

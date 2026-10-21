@@ -53,5 +53,5 @@ runCommand name
     }
   )
   ''
-    exec ${lib.getExe nushell} ${lib.escapeShellArgs nuArgs} "$nuScript"
+    exec ${lib.escapeShellArg (lib.getExe nushell)} ${lib.escapeShellArgs nuArgs} "$nuScript"
   ''
