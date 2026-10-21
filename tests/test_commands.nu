@@ -96,6 +96,7 @@ let outputs = ({
       scope: {
         hello: {type: "derivation", description: "A greeting"}
       }
+      omitted: {}
     }
   }
   formatter: {
@@ -132,6 +133,8 @@ assert equal $module.kind "unknown"
 let false_positive = ($outputs | where path == "linux-tools.helper" | first)
 assert equal $false_positive.system null
 assert equal $false_positive.name "helper"
+
+assert ("packages.x86_64-linux.omitted" not-in ($outputs | get path))
 
 let completions = (format-flake-completions ".#sc" $outputs [packages])
 assert equal ($completions | get value) [".#scope.hello"]

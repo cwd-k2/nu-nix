@@ -178,12 +178,16 @@ def flake-leaf [path: list<string>, value: any]: nothing -> record {
 def walk-flake [path: list<string>, value: any]: nothing -> list<any> {
   let leaf_kind = if (is-record $value) { $value.type? | default null } else { null }
   let is_leaf = $leaf_kind != null and ($leaf_kind | describe) == "string"
-  let traversable = (is-record $value) and (not $is_leaf) and (not ($value | is-empty))
-  if $traversable {
-    $value
-    | transpose name value
-    | each {|child| walk-flake ($path | append $child.name) $child.value }
-    | flatten
+  let is_branch = (is-record $value) and (not $is_leaf)
+  if $is_branch {
+    if ($value | is-empty) {
+      []
+    } else {
+      $value
+      | transpose name value
+      | each {|child| walk-flake ($path | append $child.name) $child.value }
+      | flatten
+    }
   } else {
     [ (flake-leaf $path $value) ]
   }

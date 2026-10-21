@@ -74,7 +74,7 @@ def to-nix-inner [depth: int]: any -> string {
     $val | into string
   } else if $t == "float" {
     let s = ($val | into string)
-    if ($s | str downcase) in ["nan" "inf" "-inf"] {
+    if ($s | str lowercase) in ["nan" "inf" "-inf"] {
       error make {
         msg: $"non-finite float ($s) cannot be represented in Nix"
       }
