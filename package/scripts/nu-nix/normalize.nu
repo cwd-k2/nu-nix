@@ -20,6 +20,7 @@ export def normalize-search []: record -> table {
 export def normalize-path-info []: record -> table {
   $in
   | transpose path info
+  | where {|result| not ($result.info | is-empty) }
   | each {|result| $result.info | insert path $result.path }
 }
 

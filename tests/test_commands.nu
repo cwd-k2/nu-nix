@@ -23,9 +23,11 @@ assert equal $searches.0.license "GPL-3.0-or-later"
 
 let paths = ({
   "/nix/store/example": {narSize: 123, references: ["/nix/store/ref"]}
+  "/nix/store/missing": {}
 } | normalize-path-info)
 assert equal $paths.0.path "/nix/store/example"
 assert equal $paths.0.narSize 123
+assert equal ($paths | length) 1
 
 let environment = ({variables: {
   PATH: {type: "array", value: ["/bin"]}
