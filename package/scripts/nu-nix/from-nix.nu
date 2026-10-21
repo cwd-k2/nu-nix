@@ -28,14 +28,19 @@ export def "from nix" [
   --file (-f): path     # evaluate a .nix file
 ]: [string -> any, nothing -> any] {
   let expression = $in
-  if $file != null and $installable != null {
-    error make { msg: "from nix accepts either an installable or --file, not both" }
+  let source_count = ([
+    ($expression != null)
+    ($installable != null)
+    ($file != null)
+  ] | where { $in } | length)
+  if $source_count == 0 {
+    error make { msg: "from nix requires an expression on input, an installable, or --file" }
+  } else if $source_count > 1 {
+    error make { msg: "from nix accepts exactly one of pipeline input, an installable, or --file" }
   } else if $file != null {
     run-nix-json eval --file ($file | into string) --json
   } else if $installable != null {
     run-nix-json eval $installable --json
-  } else if $expression == null {
-    error make { msg: "from nix requires an expression on input, an installable, or --file" }
   } else {
     run-nix-json eval --expr ($expression | into string) --json
   }

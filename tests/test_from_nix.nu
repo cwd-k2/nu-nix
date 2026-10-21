@@ -359,6 +359,8 @@ def "test from nix rejects missing input" [] {
 #[test]
 def "test from nix rejects ambiguous source" [] {
   assert error { from nix nixpkgs#hello --file ./flake.nix }
+  assert error { "1 + 1" | from nix nixpkgs#hello }
+  assert error { "1 + 1" | from nix --file ./flake.nix }
 }
 
 
