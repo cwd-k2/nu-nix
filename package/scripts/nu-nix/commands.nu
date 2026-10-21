@@ -12,24 +12,59 @@
 
 use internal.nu run-nix-json
 use normalize.nu *
+use completions.nu [complete-build complete-dev-shell complete-shell]
 
 # ── Shell entry — enter a Nix environment with Nushell ───────────────────────
 
 # Enter a nix develop shell running Nushell.
-export def --wrapped "nu-nix develop" [...rest: string] {
-  ^nix develop ...$rest --command $nu.current-exe
+export def --wrapped "nu-nix develop" [
+  --offline  # disable substituters and network access
+  --impure   # allow access to mutable paths
+  --refresh  # refresh cached flake inputs
+  ...rest: string@complete-dev-shell
+] {
+  let options = ([
+    (if $offline { "--offline" })
+    (if $impure { "--impure" })
+    (if $refresh { "--refresh" })
+  ] | compact)
+  ^nix develop ...$options ...$rest --command $nu.current-exe
 }
 
 # Enter a nix shell running Nushell.
-export def --wrapped "nu-nix shell" [...rest: string] {
-  ^nix shell ...$rest --command $nu.current-exe
+export def --wrapped "nu-nix shell" [
+  --offline  # disable substituters and network access
+  --impure   # allow access to mutable paths
+  --refresh  # refresh cached flake inputs
+  ...rest: string@complete-shell
+] {
+  let options = ([
+    (if $offline { "--offline" })
+    (if $impure { "--impure" })
+    (if $refresh { "--refresh" })
+  ] | compact)
+  ^nix shell ...$options ...$rest --command $nu.current-exe
 }
 
 # ── Build ─────────────────────────────────────────────────────────────────────
 
 # Build a derivation; return output paths as a table.
-export def --wrapped "nu-nix build" [...rest: string] {
-  run-nix-json build --json ...$rest | normalize-build
+export def --wrapped "nu-nix build" [
+  --no-link  # do not create the result symlink
+  --rebuild  # build again and compare the result
+  --offline  # disable substituters and network access
+  --impure   # allow access to mutable paths
+  --refresh  # refresh cached flake inputs
+  ...rest: string@complete-build
+] {
+  let options = ([
+    (if $no_link { "--no-link" })
+    (if $rebuild { "--rebuild" })
+    (if $offline { "--offline" })
+    (if $impure { "--impure" })
+    (if $refresh { "--refresh" })
+  ] | compact)
+  run-nix-json build --json ...$options ...$rest | normalize-build
 }
 
 # ── Search and inspect ────────────────────────────────────────────────────────
@@ -40,12 +75,12 @@ export def --wrapped "nu-nix search" [...rest: string] {
 }
 
 # Query store path info as a table.
-export def --wrapped "nu-nix path-info" [...rest: string] {
+export def --wrapped "nu-nix path-info" [...rest: string@complete-build] {
   run-nix-json path-info --json --json-format 1 ...$rest | normalize-path-info
 }
 
 # Inspect every path in a store closure, including aggregate closure sizes.
-export def --wrapped "nu-nix closure" [...rest: string] {
+export def --wrapped "nu-nix closure" [...rest: string@complete-build] {
   run-nix-json path-info --json --json-format 1 --recursive --closure-size ...$rest | normalize-path-info
 }
 

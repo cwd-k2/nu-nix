@@ -21,9 +21,10 @@
 #     use --file for expressions that import other files.
 
 use internal.nu run-nix-json
+use completions.nu complete-nix-value
 
 export def "from nix" [
-  installable?: string  # flake installable, e.g. nixpkgs#hello.meta
+  installable?: string@complete-nix-value  # flake installable, e.g. nixpkgs#hello.meta
   --file (-f): path     # evaluate a .nix file
 ]: [string -> any, nothing -> any] {
   let expression = $in

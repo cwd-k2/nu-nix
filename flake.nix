@@ -419,6 +419,7 @@
               ''
                 mkdir -p package/scripts/nu-nix tests/support
                 cp ${./package/scripts/nu-nix/normalize.nu} package/scripts/nu-nix/normalize.nu
+                cp ${./package/scripts/nu-nix/completions.nu} package/scripts/nu-nix/completions.nu
                 cp ${./tests/test_commands.nu} tests/test_commands.nu
                 cp ${./tests/support/assert.nu} tests/support/assert.nu
                 nu --no-config-file tests/test_commands.nu
@@ -441,6 +442,27 @@
                 substituteInPlace tests/test_activation.nu \
                   --replace-fail 'MODULE' '${pkg}/share/nushell/nu-nix/mod.nu'
                 nu --no-config-file tests/test_activation.nu
+                touch $out
+              '';
+
+          completion-tests =
+            pkgs.runCommand "nu-nix-completion-tests"
+              {
+                nativeBuildInputs = [
+                  pkgs.nix
+                  pkgs.nushell
+                ];
+                NIX_CONFIG = "experimental-features = nix-command flakes";
+              }
+              ''
+                export HOME="$PWD/home"
+                mkdir -p "$HOME" tests/support
+                cp ${./tests/test_completions.nu} tests/test_completions.nu
+                cp ${./tests/support/assert.nu} tests/support/assert.nu
+                substituteInPlace tests/test_completions.nu \
+                  --replace-fail 'MODULE' '${pkg}/share/nushell/nu-nix/mod.nu' \
+                  --replace-fail 'FIXTURE' '${./tests/fixtures/completion-flake}'
+                nu --no-config-file tests/test_completions.nu
                 touch $out
               '';
         }

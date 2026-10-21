@@ -1,5 +1,6 @@
 use ./support/assert.nu
 use ../package/scripts/nu-nix/normalize.nu *
+use ../package/scripts/nu-nix/completions.nu format-flake-completions
 
 let builds = ([{
   drvPath: "/nix/store/example.drv"
@@ -121,5 +122,10 @@ assert equal $module.kind "unknown"
 let false_positive = ($outputs | where path == "linux-tools.helper" | first)
 assert equal $false_positive.system null
 assert equal $false_positive.name "helper"
+
+let completions = (format-flake-completions ".#sc" $outputs [packages])
+assert equal ($completions | get value) [".#scope.hello"]
+assert ($completions.0.description | str contains "derivation")
+assert ($completions.0.description | str contains "A greeting")
 
 print "structured command normalizers passed"

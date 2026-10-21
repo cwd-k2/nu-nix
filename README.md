@@ -169,6 +169,24 @@ complete `before` and `after` records. Add `--closure` to compare every
 transitive store path and report `narSizeDelta` and `closureSizeDelta`; add
 `--all` to include unchanged rows.
 
+### Completions
+
+The module provides Nushell-native completion for common Nix flags and local
+flake outputs:
+
+```nushell
+nu-nix build .#<Tab>       # packages for the current system
+nu-nix develop .#<Tab>     # devShells for the current system
+nu-nix activate .#<Tab>    # devShells for the current system
+nu-nix build --<Tab>       # common build/evaluation flags
+```
+
+Output completion uses a shallow `nix eval ... --apply builtins.attrNames`, so
+it does not force every flake output. Completion only evaluates a flake when
+the reference before `#` is an existing local path; it never starts a remote
+fetch merely because Tab was pressed. Other arguments fall back to Nushell's
+built-in completion behavior.
+
 ### Nix ↔ Nu value conversion
 
 ```nushell
