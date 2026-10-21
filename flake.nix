@@ -115,6 +115,7 @@
             name = "generated-values";
             values = {
               answer = 42;
+              control = builtins.fromJSON "\"\\u0001\"";
               empty = { };
               nested = {
                 enabled = true;

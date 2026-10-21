@@ -3,6 +3,7 @@ use VALUE_MODULE *
 use ENV_MODULE *
 
 assert ($answer == 42)
+assert (($control | encode hex) == "01")
 assert ($nested == {
   enabled: true
   items: ["quoted \"value\"", "line\nbreak", null]

@@ -293,6 +293,13 @@ def "test negative float" [] {
   assert equal (-3.14 | to nix) "-3.14"
 }
 
+#[test]
+def "test non-finite floats error" [] {
+  assert error { NaN | into float | to nix }
+  assert error { inf | into float | to nix }
+  assert error { -inf | into float | to nix }
+}
+
 
 # ── Tables ────────────────────────────────────────────────────────────────────
 
@@ -405,6 +412,7 @@ let _results = [
   (_run "large positive int"          { test large positive int })
   (_run "large negative int"          { test large negative int })
   (_run "negative float"              { test negative float })
+  (_run "non-finite floats error"     { test non-finite floats error })
 
   # Tables
   (_run "table becomes list of attrsets" { test table becomes list of attrsets })

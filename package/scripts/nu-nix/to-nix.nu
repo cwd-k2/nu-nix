@@ -74,6 +74,11 @@ def to-nix-inner [depth: int]: any -> string {
     $val | into string
   } else if $t == "float" {
     let s = ($val | into string)
+    if ($s | str downcase) in ["nan" "inf" "-inf"] {
+      error make {
+        msg: $"non-finite float ($s) cannot be represented in Nix"
+      }
+    }
     # Nushell may drop the decimal point for whole floats (e.g. 1.0 → "1").
     # Append ".0" so Nix treats the value as a float, not an int.
     if ($s | str contains ".") or ($s | str contains "e") { $s } else { $"($s).0" }
