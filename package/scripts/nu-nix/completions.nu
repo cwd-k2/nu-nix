@@ -32,9 +32,15 @@ def completion-token [input: any]: nothing -> string {
   }
 }
 
-def local-output-rows [target: string, output_type: string, system: string]: nothing -> table {
+def local-output-rows [
+  target: string
+  output_type: string
+  system: string
+  parent: list<string>
+]: nothing -> table {
+  let output_path = ([ $output_type $system ] | append $parent | str join ".")
   let names = (try {
-    ^nix --quiet eval --offline --no-write-lock-file --json $"($target)#($output_type).($system)" --apply builtins.attrNames
+    ^nix --quiet eval --offline --no-write-lock-file --json $"($target)#($output_path)" --apply builtins.attrNames
     | from json
   } catch {
     []
@@ -43,7 +49,7 @@ def local-output-rows [target: string, output_type: string, system: string]: not
     {
       type: $output_type
       system: $system
-      name: $name
+      name: ($parent | append $name | str join ".")
       kind: null
       description: ""
     }
@@ -64,8 +70,11 @@ def complete-local-flake [input: any, allowed_types: list<string>] {
       []
     } else {
       let system = $"($nu.os-info.arch)-($nu.os-info.name)"
+      let fragment = ($token | split row "#" | skip 1 | str join "#")
+      let fragment_parts = ($fragment | split row ".")
+      let parent = ($fragment_parts | drop 1)
       let outputs = ($allowed_types
-        | each {|output_type| local-output-rows $target $output_type $system }
+        | each {|output_type| local-output-rows $target $output_type $system $parent }
         | flatten)
       format-flake-completions $token $outputs $allowed_types
     }

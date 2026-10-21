@@ -10,7 +10,15 @@ let build_values = (
 assert equal $build_values [
   $"($fixture)#alpha"
   $"($fixture)#beta"
+  $"($fixture)#scope"
 ]
+
+let nested_build_values = (
+  $"nu-nix build ($fixture)#scope."
+  | commandline complete --detailed
+  | get value
+)
+assert equal $nested_build_values [$"($fixture)#scope.gamma"]
 
 let build_flags = (
   "nu-nix build --"
