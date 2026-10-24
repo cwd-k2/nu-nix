@@ -14,6 +14,7 @@ let
   system = pkgs.stdenv.hostPlatform.system;
   pkg = self.packages.${system}.default;
   nativePlugin = self.packages.${system}.native-plugin;
+  nativeBuildSource = builtins.toFile "nu-nix-native-build-source" "built";
   nuNixBash = self.packages.${system}.nu-nix-bash;
   evaluationFails = value: !(builtins.tryEval value).success;
   checkAssertions =
@@ -422,6 +423,10 @@ in
             name = "source";
           }
         }/helper.nu
+        # The fixture evaluates the same store path dynamically. Keep it in
+        # this outer derivation's closure so nested chroot-store builds can
+        # resolve its file:// URL.
+        test -f ${nativeBuildSource}
         nu --no-config-file \
           --plugins ${nativePlugin}/bin/nu_plugin_nix \
           tests/test_tasks.nu
