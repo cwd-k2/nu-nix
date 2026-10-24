@@ -1,0 +1,22 @@
+[package]
+name = "nu-plugin-nix"
+version = "0.1.0"
+edition = "2024"
+license = "MIT"
+publish = false
+
+[[bin]]
+name = "nu_plugin_nix"
+path = "src/main.rs"
+
+[dependencies]
+libc = "0.2"
+nu-plugin = "=0.116.1"
+nu-protocol = { version = "=0.116.1", features = ["plugin"] }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+typetag = "0.2"
+
+[build-dependencies]
+bindgen = "0.72"
+pkg-config = "0.3"
