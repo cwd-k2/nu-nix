@@ -1,0 +1,1 @@
+open $env.NU_NIX_EXAMPLE_REPORT

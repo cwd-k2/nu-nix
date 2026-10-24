@@ -1,22 +1,33 @@
 # nu-nix
 
-Nushell and Nix integration.
+Native Nix values and Nix-backed project workflows for Nushell.
 
-Provides three things:
+nu-nix evaluates Nix expressions and flakes through the public Nix C APIs.
+Results remain lazy `NixValue`s while Nushell traverses them, without a
+`nix eval` subprocess or JSON value boundary.
 
-- **`nu-bash`** — login-shell compatibility wrapper that starts Nushell for
-  interactive terminals while delegating script/argument invocations to Bash.
-  Needed by tools that call the login shell directly (Zed, ssh, WSL launchers,
-  PAM, `nix develop`, …).
+This is an experimental project. Commands, flake outputs, builders, package
+composition, and schemas may change without compatibility aliases or migration
+support. Only the Nix and Nushell revisions pinned by this flake are supported.
 
-- **`nu-nix` Nushell module** — structured Nix commands and Nix ↔ Nu value
-  converters, loaded with `use nu-nix *`.
+## User model
 
-- **Nix builders** — `lib.mkNuModule` packages reusable Nushell modules, while
-  `lib.mkNuApplication` builds multi-file applications with pinned modules,
-  runtime commands, and environment.
+| Concept | Purpose | Commands |
+| --- | --- | --- |
+| Value | inspect and transform lazy Nix values | `nix eval`, `nix flake outputs`, `nix call`, `nix collect`, `nix realise` |
+| Export | call Nix functions published by a flake | `nix export list`, `inspect`, `call` |
+| Task | plan and run named project effects | `nix task list`, `nix task run` |
+| Workflow | use Nix-owned build, profile, and environment operations as Nu data | `nix build`, `develop`, `search`, `profile ...` |
 
-## Setup (NixOS)
+`nix` is the normal entry point. Exact commands integrated by nu-nix return
+native or structured Nu data; other commands fall through to the external Nix
+CLI. Use `^nix` when a script must require raw CLI behavior even if nu-nix adds
+an integrated command later. The conceptual model and exact boundaries are in
+[Integration model and status](docs/integration-status.md).
+
+## Install
+
+### NixOS
 
 ```nix
 {
@@ -28,15 +39,13 @@ Provides three things:
       modules = [
         nu-nix.nixosModules.default
         ({ config, ... }: {
-          # Install nu-bash and the nu-nix Nushell module.
-          programs.nu-nix.enable = true;
+          programs.nu-nix = {
+            enable = true;
+            autoLoad = true;
+          };
 
-          # Automatically load the module in every Nushell session via the
-          # vendor autoload mechanism — no `use nu-nix *` needed.
-          programs.nu-nix.autoLoad = true;
-
-          # Make nu-bash the login shell for a user.
-          users.users.alice.shell = config.programs.nu-nix.package;
+          # Optional login-shell compatibility launcher.
+          users.users.alice.shell = config.programs.nu-nix.loginShellPackage;
         })
       ];
     };
@@ -44,304 +53,297 @@ Provides three things:
 }
 ```
 
-For a local checkout, see [`examples/nixos.nix`](examples/nixos.nix).
-
-## Setup (Home Manager)
+### Home Manager
 
 ```nix
 {
   imports = [ inputs.nu-nix.homeManagerModules.default ];
-
-  programs.nu-nix.enable = true;
-
-  # Automatically load the module in every Nushell session for this user.
-  programs.nu-nix.autoLoad = true;
-}
-```
-
-The Home Manager module installs the package and, when `autoLoad` is enabled,
-writes `nushell/autoload/nu-nix.nu` in the user's XDG config. It does not
-register `nu-bash` as a login shell; use the NixOS module for that.
-
-## Usage
-
-With `autoLoad = true`, all commands are available automatically in
-every Nushell session — no `use nu-nix *` needed.
-
-Without `autoLoad`, load the module manually with the full store path:
-
-```nushell
-use /run/current-system/sw/share/nushell/nu-nix *
-```
-
-### Shell entry
-
-Enter a Nix environment with Nushell as the interactive shell:
-
-```nushell
-nu-nix develop                  # nix develop → nushell
-nu-nix develop .#default        # explicit flake output
-nu-nix shell nixpkgs#jq         # nix shell → nushell
-nu-nix-shell -p jq              # legacy nix-shell → nushell
-```
-
-Exiting the child Nushell returns to the current Nushell session.
-
-To apply a development environment to the current Nushell instead of opening a
-child shell, activate it and later restore the previous environment:
-
-```nushell
-nu-nix activate .#default
-nu-nix deactivate
-```
-
-Activations can be nested. `PATH` entries from the development environment are
-placed before the existing `PATH`, and deactivation restores the exact previous
-value. Session identity and temporary-directory variables such as `HOME`,
-`SHELL`, and `TMPDIR` are protected. The activation result lists skipped shell
-variables and Bash functions; Bash-only `shellHook` code and functions are not
-executed implicitly.
-
-### Legacy nix-* wrappers
-
-Thin wrappers for the classic `nix-*` CLI tools, with minor Nu enhancements
-where useful:
-
-```nushell
-nu-nix-build -A hello           # → list of output paths
-nu-nix-env -iA nixpkgs.jq      # manage user environment
-nu-nix-channel list             # → name/url table
-nu-nix-channel --update         # pass-through
-nu-nix-collect-garbage -d       # remove old generations + GC
-nu-nix-instantiate --eval --expr '1 + 1'
-nu-nix-store --query --references /nix/store/…
-nu-nix-prefetch-url https://…   # → trimmed hash string
-nu-nix-hash --type sha256 ./file
-nu-nix-copy-closure --to user@host /nix/store/…
-```
-
-### Structured data commands
-
-These return Nu tables and records — fully composable in pipelines:
-
-```nushell
-nu-nix build                            # → table of output paths
-nu-nix search nixpkgs jq               # → package table
-nu-nix path-info /nix/store/…          # → store path details
-nu-nix closure .#package               # → recursive closure and size details
-nu-nix print-dev-env                    # → env var table
-nu-nix flake show                       # → flake output table
-nu-nix flake metadata                   # → flake info record
-nu-nix derivation show                  # → derivation details table
-nu-nix profile list                     # → installed packages table
-nu-nix profile diff old-link new-link   # → profile generation changes
-```
-
-`nix why-depends` does not provide a machine-readable output format. Its
-wrapper therefore preserves Nix's native text tree instead of presenting it as
-structured data:
-
-```nushell
-nu-nix why-depends /nix/store/… /nix/store/…
-```
-
-Because these are module functions (not an external binary), their output
-flows as Nu values through the pipeline:
-
-```nushell
-nu-nix search nixpkgs python | where version >= "3.11" | to nix
-nu-nix profile list | get storePaths | flatten
-nu-nix flake show | where type == "packages" and system == "x86_64-linux"
-```
-
-`nu-nix flake show` recursively walks nested output sets. Each row includes the
-full flake `path`, the top-level output `type`, optional `system` and `name`, the
-leaf `kind`, its description, and the unmodified `raw` leaf returned by Nix.
-
-Compare two `nix profile` generation links without parsing Nix's human-readable
-history output:
-
-```nushell
-let profiles = ($env.XDG_STATE_HOME? | default ($env.HOME | path join .local state))
-  | path join nix profiles
-
-nu-nix profile diff \
-  ($profiles | path join profile-41-link) \
-  ($profiles | path join profile-42-link)
-| where change != unchanged
-```
-
-The default view compares directly installed profile elements and retains the
-complete `before` and `after` records. Add `--closure` to compare every
-transitive store path and report `narSizeDelta` and `closureSizeDelta`; add
-`--all` to include unchanged rows.
-
-### Completions
-
-The module provides Nushell-native completion for common Nix flags and local
-flake outputs:
-
-```nushell
-nu-nix build .#<Tab>       # packages for the current system
-nu-nix develop .#<Tab>     # devShells for the current system
-nu-nix activate .#<Tab>    # devShells for the current system
-nu-nix build --<Tab>       # common build/evaluation flags
-```
-
-Output completion uses an offline, lock-file-preserving
-`nix eval ... --apply builtins.attrNames`, so it does not force every flake
-output. Completion only evaluates a flake when the reference before `#` is an
-existing local path. Missing inputs produce no candidates instead of causing a
-network fetch, and completion never changes `flake.lock`. Other arguments fall
-back to Nushell's built-in completion behavior.
-
-### Nix ↔ Nu value conversion
-
-```nushell
-# Evaluate a Nix expression and return a Nu value
-"{ x = 1 + 1; }" | from nix            # => {x: 2}
-from nix nixpkgs#hello.meta             # => {broken: false, …}
-from nix --file ./config.nix
-
-# Serialize a Nu value to Nix expression syntax
-{enable: true, port: 8080} | to nix
-nu-nix profile list | select name | to nix | save packages.nix
-```
-
-For detailed conversion examples, see [`examples/usage.nu`](examples/usage.nu).
-
-## Packaging Nushell applications
-
-Package a module directory containing `mod.nu` and optionally expose it through
-Nushell's vendor autoload convention:
-
-```nix
-packages.x86_64-linux.my-module = nu-nix.lib.mkNuModule {
-  inherit pkgs;
-  name = "my-module";
-  src = ./my-module;
-  autoLoad = true;
-};
-```
-
-`lib.mkNuApplication` keeps a Nushell source tree intact, runs it without user
-configuration, and makes the pinned `nu-nix` module available through the
-application's module search path. Additional Nushell module packages must place
-their modules under `share/nushell/`.
-
-```nix
-{
-  packages.x86_64-linux.my-tool = nu-nix.lib.mkNuApplication {
-    inherit pkgs;
-    name = "my-tool";
-    src = ./tool;
-    entrypoint = "main.nu";
-    runtimeInputs = [ pkgs.git ];
-    nuLibraries = [
-      nu-nix.packages.x86_64-linux.default
-      another-nushell-module
-    ];
-    environment.MY_TOOL_MODE = "managed";
+  programs.nu-nix = {
+    enable = true;
+    autoLoad = true;
   };
 }
 ```
 
-The default `nuLibraries` already contains the matching `nu-nix` package, so it
-can normally be omitted. `nuLibDirs` accepts additional module directories when
-they are not packaged under `share/nushell/`. `extraWrapperArgs` provides an
-escape hatch for `makeWrapper` options. Set `nuLibraries = [ ];` for an
-application that does not import any Nushell modules; the wrapper then omits the
-module search path entirely. Application, module, and command derivation names
-must start with a letter or digit and otherwise contain only letters, digits,
-`.`, `_`, `+`, or `-`. Application entrypoints must be safe relative paths
-within `src`; wrapper environment names must be shell identifiers and their
-values must be strings, paths, or derivations.
-
-Nix values can also become exported Nushell constants without running Nushell
-during Nix evaluation. Values may contain JSON-compatible scalars, lists, and
-attribute sets; Nix paths become store paths.
-
-```nix
-packages.x86_64-linux.host-context = nu-nix.lib.mkNuModuleFromValue {
-  inherit pkgs;
-  name = "host-context";
-  values = {
-    host = "workstation";
-    features = [ "audio" "graphics" ];
-  };
-};
-```
-
-Loading the resulting module with `use host-context *` exports `$host` and
-`$features`. Export names must be valid Nushell identifiers and cannot shadow
-the built-in `$env`, `$in`, or `$nu` variables.
-
-`lib.mkNuEnvModule` produces a module with an `export-env` block. It can set
-typed Nushell environment values and update list-valued path variables while
-keeping the requested entries unique. Existing occurrences of those entries are
-moved to the requested side; the order and duplicates of unrelated existing
-entries are preserved. Set `autoLoad = true` to expose it through Nushell's
-vendor autoload convention.
-
-```nix
-packages.x86_64-linux.session-env = nu-nix.lib.mkNuEnvModule {
-  inherit pkgs;
-  name = "session-env";
-  autoLoad = true;
-  variables.EDITOR = "nvim";
-  prependPath.PATH = [ "/run/wrappers/bin" ];
-};
-```
-
-`prependPath` and `appendPath` entries must be lists of strings or Nix paths,
-and a variable cannot use both operations. Existing values must also be lists,
-as Nushell's built-in `PATH` value normally is.
-
-The [generated application example](examples/generated-application) combines
-all three builders: Nix declarations become a data module and an environment
-module, then `mkNuApplication` makes both available to a multi-file Nushell
-program. Run it directly from the example directory:
-
-```sh
-nix run . -- Ada
-```
-
-`lib.runNuCommand` runs a Nushell script as a Nix derivation builder. It gives
-the script a clean Nushell session, makes declared Nushell libraries available,
-and adds build tools to `PATH`.
-
-```nix
-checks.x86_64-linux.quality = nu-nix.lib.runNuCommand {
-  inherit pkgs;
-  name = "quality";
-  scriptFile = ./scripts/check.nu;
-  runtimeInputs = with pkgs; [ deadnix nixfmt-tree ];
-  derivationArgs.src = ./.;
-};
-```
-
-The default `nuLibraries` contains nu-nix. Use `nuLibraries = [ ];` for a
-standalone script, `nuLibDirs` for unpackaged module directories, and
-`derivationArgs` for values such as `src`, `meta`, or `passthru` that must
-be passed to the underlying derivation. `scriptText` accepts an inline Nushell
-program; `script` remains as a compatibility alias for `scriptFile`.
-
-## Package-only install
-
-```sh
-nix profile install github:cwd-k2/nu-nix
-```
-
-Then load the module manually in your Nushell config:
+For a package-only installation, load the packaged plugin registry and module:
 
 ```nushell
-# ~/.config/nushell/config.nu
+plugin use --plugin-config ~/.nix-profile/share/nushell/nu-nix/plugin.msgpackz nix
 use ~/.nix-profile/share/nushell/nu-nix *
 ```
 
-For profile-level autoload, put the same `use` statement in
-`~/.config/nushell/autoload/nu-nix.nu`. The package itself does not decide
-whether it is autoloaded; the NixOS module, Home Manager module, or user config
-owns that policy.
+`packages.nu-nix-bash` is a separate, optional login-shell compatibility
+package. Home Manager installations do not pull it in.
 
-For login-shell integration, prefer the NixOS module.
+## Values
+
+Evaluation returns a lazy native value:
+
+```nushell
+let value = (nix eval '{
+  answer = 40 + 2;
+  nested = { enabled = true; items = [ 1 2 3 ]; };
+  unused = throw "still lazy";
+}')
+
+$value | nix attr names              # [answer nested unused]
+$value.answer | nix collect          # 42
+$value.nested.enabled | nix collect  # true
+```
+
+Nu values can become native Nix values, and Nix functions remain callable:
+
+```nushell
+let select = (nix eval 'name: values: values.${name}')
+$select | nix call answer {answer: 42} | nix collect
+
+let native = ({enabled: true, items: [1 2 3]} | into nix)
+$native.items.1 | nix collect
+```
+
+`nix collect` explicitly forces and converts a selected subtree. `nix realise`
+realises the store references retained by a contextual Nix string. See
+[native-values.nu](examples/native-values.nu) and
+[native-functions.nu](examples/native-functions.nu).
+
+## Flake interface
+
+flake-parts consumers can import `flakeModules.default` and publish a
+versioned `nushell.<system>` interface:
+
+```nix
+{
+  imports = [ inputs.nu-nix.flakeModules.default ];
+
+  perSystem = { pkgs, ... }: {
+    nushell.modules.example = {
+      package = exampleModule;
+      entrypoint = "share/nushell/example/mod.nu";
+      description = "Example module";
+    };
+
+    nushell.exports.select = inputs.nu-nix.lib.mkNuExport {
+      inherit pkgs;
+      arguments = [ "name" "values" ];
+      result = "lazy";
+      function = name: values: values.${name};
+    };
+  };
+}
+```
+
+Modules, plugins, and applications remain ordinary Nix packages. The
+`nushell.<system>` entries add author-facing role and entrypoint metadata for
+validation and diagnostics; they are not another installable format. Exports
+are callable Nix functions with explicit result forcing policy.
+
+There are two representations at this boundary. In flake-parts configuration,
+authors provide a component specification whose `package` is a derivation.
+The module publishes a wire descriptor whose `package` is a contextual Nix
+string that the native runtime can realise directly. A flake which writes the
+`nushell.<system>` output by hand must use that wire form:
+
+```nix
+{
+  type = "nu-nix-publication";
+  version = 1;
+  role = "module";
+  package = "${exampleModule}";
+  entrypoint = "share/nushell/example/mod.nu";
+  description = "Example module";
+}
+```
+
+Published entrypoints are always non-empty package-relative paths. Local
+component specifications passed to `mkNuSession` may use either derivations or
+already-published contextual strings; the resulting session is still an
+ordinary package.
+
+```nushell
+nix publication list
+nix publication inspect module example
+nix publication resolve module example
+nix publication check --realise
+nix export list
+nix export call select --arguments [answer {answer: 42}]
+```
+
+The `nix publication` commands inspect this metadata. They are mainly
+an author and diagnostic surface, not a prerequisite for using a packaged
+module, plugin, or application. `resolve` does not dynamically load anything:
+Nushell resolves `use` and plugin signatures at parse time.
+
+## Fresh-session composition
+
+`lib.mkNuSession` composes published or local module, plugin, and application
+descriptors into an ordinary Nix package which launches a fresh Nushell
+process. Declared modules are importable by name, plugin executables are loaded
+by the new process, applications are exposed on `PATH` by name, and ordinary
+Nix packages can be added to the same `PATH`.
+
+```nix
+nuSession = inputs.nu-nix.lib.mkNuSession {
+  inherit pkgs;
+  name = "project-nu";
+  inherit (published) modules applications plugins;
+  packages = [ pkgs.jq ];
+};
+```
+
+The session launcher is a normal derivation. It can be built, exposed as a
+flake package or app, and installed through normal Nix mechanisms. Starting it
+creates the parse boundary required for its modules and plugins; it does not
+inject them into an already running Nushell process.
+
+Install it like any other package; the nu-nix modules do not maintain a second
+composition or installation schema:
+
+```nix
+# NixOS
+environment.systemPackages = [ nuSession ];
+
+# Home Manager
+home.packages = [ nuSession ];
+```
+
+This does not autoload every component into ordinary Nushell sessions. It puts
+the named `project-nu` launcher on `PATH`; invoking it starts the composed fresh
+session.
+
+## Tasks
+
+Tasks are explicit effects published under `tasks.<system>`. With the
+flake-parts module they are declared and type-checked per system:
+
+```nix
+perSystem = { pkgs, ... }: {
+  tasks.check = inputs.nu-nix.lib.mkNuTask {
+    inherit pkgs;
+    description = "Run project checks";
+    runtimeInputs = [ pkgs.cargo ];
+    script = ./tasks/check.nu;
+  };
+};
+```
+
+```nushell
+nix task list
+nix task run check --dry-run
+nix task run check
+nix task run check --report-errors
+```
+
+Cacheable work belongs in derivations. `mkDerivationTask` exposes named
+derivation targets; `mkNuTask` handles orchestration and development effects.
+Dependencies order effects and never turn stdout into implicit dataflow. The
+full contract is in [Task model](docs/task-model.md), with a runnable example in
+[examples/integrated-project](examples/integrated-project).
+
+## Nix workflows
+
+Operations whose semantics belong to the Nix CLI cross an explicit structured
+process boundary:
+
+```nushell
+nix build .#default
+nix search nixpkgs jq
+nix path-info /nix/store/...
+nix profile list
+nix profile add .#tool
+nix profile upgrade tool
+nix profile remove tool
+nix profile history
+nix profile rollback
+nix develop .#default
+nix activate .#default
+nix deactivate
+```
+
+`nix activate` projects exported variables and PATH into the current Nushell
+session. It does not run Bash functions or `shellHook`; use `nix develop` when
+the complete development-shell behavior is required.
+
+Profile mutations retain the Nix CLI's transaction semantics and then return
+the resulting profile as a Nu table. `nix profile history` remains text because
+Nix does not expose a machine-readable history format. Installing a composed
+session changes the profile generation; its modules and plugins become active
+when that launcher starts a new Nushell process, not in the shell which ran the
+profile command.
+
+Commands without an integrated definition retain raw CLI behavior:
+
+```nushell
+nix store gc       # falls through to the external CLI
+^nix build .#tool  # explicitly require raw build output
+```
+
+Nushell selects an exact integrated subcommand while parsing. Constructing the
+subcommand dynamically, such as `nix ...$arguments`, selects the catch-all
+`nix` command and therefore preserves raw CLI behavior even when the arguments
+begin with `build` or `profile`. Scripts that require structured output must
+spell the integrated command explicitly and branch before invoking it.
+
+## Nix library
+
+- `lib.mkNuModule`: package a Nushell module tree.
+- `lib.mkNuApplication`: package a multi-file Nushell command.
+- `lib.mkNuSession`: compose modules, plugins, applications, and packages
+  for a fresh Nushell process.
+- `lib.mkNuModuleFromValue`: render Nix data into a typed Nushell module.
+- `lib.mkNuEnvModule`: generate an `export-env` module.
+- `lib.runNuCommand`: run Nushell as a Nix build action.
+- `lib.mkNuTask`: declare an effectful Nushell task.
+- `lib.mkDerivationTask`: declare named cacheable targets.
+- `lib.mkNuExport`: publish a callable Nix function.
+
+The two descriptor-only builders, `mkDerivationTask` and `mkNuExport`, accept
+either `pkgs` for API consistency or `lib = pkgs.lib` when a full package set is
+not otherwise needed.
+
+The [integrated project example](examples/integrated-project) combines these
+builders with the flake interface and task model:
+
+```nushell
+nix publication list --flake ./examples/integrated-project
+nix export call describe --flake ./examples/integrated-project --arguments [Ada]
+nix task run check --flake ./examples/integrated-project
+nix run ./examples/integrated-project -- Ada
+```
+
+The [examples guide](examples/README.md) starts from the user's actual
+interactive choices: use nu-nix in an ordinary shell, try a disposable project
+session, or install the same session launcher through a profile, NixOS, or Home
+Manager. It also explains which files and outputs own each part of the example.
+
+The [build pipeline example](examples/build-pipeline) exercises the reverse
+direction: Nushell runs inside a pure Nix build, while tasks publish and check
+its immutable result as an explicit local effect.
+
+## Development and design
+
+```nushell
+nix develop
+nix fmt .
+nix flake check --print-build-logs
+
+# Requires a real Nix daemon; keep it outside `nix flake check`.
+let work = (mktemp -d)
+nu --no-config-file tests/consumer/native-task-lifecycle.nu (pwd) ($work | path join task)
+nu --no-config-file tests/consumer/profile-lifecycle.nu (pwd) ($work | path join run)
+```
+
+Nix and Nushell revisions are an implementation contract for the native plugin.
+When updating `flake.lock`, run the full check above, then evaluate every declared
+system and re-run Rust linting:
+
+```nushell
+nix flake check --all-systems --no-build
+^nix develop --command cargo clippy --manifest-path crates/nu-plugin-nix/Cargo.toml --all-targets -- -D warnings
+^nix develop --command cargo fmt --manifest-path crates/nu-plugin-nix/Cargo.toml --all -- --check
+```
+
+- [Integration model and current status](docs/integration-status.md)
+- [Architecture and ownership](docs/architecture.md)
+- [Task model](docs/task-model.md)
+- [Active roadmap](docs/roadmap.md)
+- [Runnable examples](examples/README.md)
