@@ -277,6 +277,12 @@ nix store gc       # falls through to the external CLI
 ^nix build .#tool  # explicitly require raw build output
 ```
 
+Nushell selects an exact integrated subcommand while parsing. Constructing the
+subcommand dynamically, such as `nix ...$arguments`, selects the catch-all
+`nix` command and therefore preserves raw CLI behavior even when the arguments
+begin with `build` or `profile`. Scripts that require structured output must
+spell the integrated command explicitly and branch before invoking it.
+
 ## Nix library
 
 - `lib.mkNuModule`: package a Nushell module tree.

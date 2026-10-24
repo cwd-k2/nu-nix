@@ -147,6 +147,9 @@ let
         "unsupported-command --flag value")
           printf '%s\n' 'raw fallback: unsupported-command --flag value'
           ;;
+        "profile list")
+          printf '%s\n' 'raw dynamic dispatch: profile list'
+          ;;
         "")
           printf '%s\n' 'raw fallback: root'
           ;;

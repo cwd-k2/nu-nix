@@ -209,6 +209,12 @@ integrated definition. Exact integrated commands remain discoverable through
 escape hatch for scripts that require raw output even if a command is
 integrated later.
 
+Exact command selection is a Nushell parse-time boundary. A call such as
+`nix ...$arguments` resolves to the catch-all before the argument values are
+known; it does not redispatch to `nix build` or another integrated subcommand
+at runtime. Code that depends on an integrated output contract must use the
+literal command name and put any dynamic choice outside that invocation.
+
 The native bridge is more than a JSON adapter: values stay lazy, functions
 remain callable, and Nix string context survives until an explicit realisation
 boundary. Nix functions, derivations, and contextual strings remain opaque when
