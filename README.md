@@ -328,6 +328,7 @@ nix flake check --print-build-logs
 
 # Requires a real Nix daemon; keep it outside `nix flake check`.
 let work = (mktemp -d)
+nu --no-config-file tests/consumer/native-task-lifecycle.nu (pwd) ($work | path join task)
 nu --no-config-file tests/consumer/profile-lifecycle.nu (pwd) ($work | path join run)
 ```
 

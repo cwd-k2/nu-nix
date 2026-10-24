@@ -22,3 +22,13 @@ jobs:
         with:
           github_access_token: ${{ secrets.GITHUB_TOKEN }}
       - run: nix flake check --no-update-lock-file --print-build-logs
+      - name: Test daemon-backed task realisation
+        run: >-
+          nix develop --command nu --no-config-file
+          tests/consumer/native-task-lifecycle.nu
+          "$PWD" "$RUNNER_TEMP/nu-nix-native-task"
+      - name: Test real profile lifecycle
+        run: >-
+          nix develop --command nu --no-config-file
+          tests/consumer/profile-lifecycle.nu
+          "$PWD" "$RUNNER_TEMP/nu-nix-profile"

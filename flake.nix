@@ -69,6 +69,8 @@
           packages = [
             pkgs.cargo
             pkgs.clippy
+            pkgs.git
+            pkgs.nushell
             pkgs.rustc
             pkgs.rustfmt
           ];

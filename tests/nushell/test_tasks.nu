@@ -5,6 +5,7 @@ let fixture = ("FIXTURE" | path expand)
 let malformed_fixture = ("MALFORMED_FIXTURE" | path expand)
 let system = "SYSTEM"
 let foreign_system = if $system == "x86_64-linux" { "aarch64-linux" } else { "x86_64-linux" }
+let skip_nested_builds = (($env.NU_NIX_SKIP_NESTED_BUILDS? | default "") == "1")
 let tasks = (nix task list --flake $fixture --base-path $fixture --system $system)
 assert equal (
   nix flake outputs $'($fixture)#quoted."name.with.dots"' --base-path $fixture --locked
@@ -104,19 +105,21 @@ assert equal (($realised.outputs.0.physicalPaths.0 | path basename) | str ends-w
 assert error {
   nix task run realise unexpected --flake $fixture --base-path $fixture --system $system
 }
-let built = (nix task run build --flake $fixture --base-path $fixture --system $system | first)
-assert equal (open --raw $built.outputs.0.physicalPaths.0) built
-assert error {
-  nix task run failing-build --flake $fixture --base-path $fixture --system $system
+if not $skip_nested_builds {
+  let built = (nix task run build --flake $fixture --base-path $fixture --system $system | first)
+  assert equal (open --raw $built.outputs.0.physicalPaths.0) built
+  assert error {
+    nix task run failing-build --flake $fixture --base-path $fixture --system $system
+  }
+  let failure_report = (
+    nix task run after-failure --flake $fixture --base-path $fixture --system $system --report-errors
+  )
+  assert equal ($failure_report | select task status) [
+    {task: failing-build, status: failed}
+    {task: after-failure, status: skipped}
+  ]
+  assert equal ($failure_report.0.error | str contains "target `broken` failed") true
 }
-let failure_report = (
-  nix task run after-failure --flake $fixture --base-path $fixture --system $system --report-errors
-)
-assert equal ($failure_report | select task status) [
-  {task: failing-build, status: failed}
-  {task: after-failure, status: skipped}
-]
-assert equal ($failure_report.0.error | str contains "target `broken` failed") true
 assert error {
   nix task run missing --flake $fixture --base-path $fixture --system $system --dry-run
 }
