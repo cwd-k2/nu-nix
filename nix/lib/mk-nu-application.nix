@@ -13,6 +13,7 @@
   runtimeInputs ? [ ],
   nuLibraries ? [ nuNixPackage ],
   nuLibDirs ? [ ],
+  plugins ? lib.optional (builtins.elem nuNixPackage nuLibraries) "${nuNixPackage}/bin/nu_plugin_nix",
   environment ? { },
   extraWrapperArgs ? [ ],
   meta ? { },
@@ -23,6 +24,7 @@ let
   support = import ./builder-support.nix { inherit lib; };
   sourceDirectory = "${src}/.";
   includePath = support.mkNuLibraryPath { inherit nuLibraries nuLibDirs; };
+  validPlugin = plugin: builtins.isString plugin || builtins.isPath plugin;
   invalidEnvironmentNames = builtins.filter (variable: !support.validEnvironmentName variable) (
     lib.attrNames environment
   );
@@ -46,6 +48,12 @@ let
     "--add-flags"
     includePath
   ]
+  ++ lib.concatMap (plugin: [
+    "--add-flags"
+    "--plugins"
+    "--add-flags"
+    plugin
+  ]) plugins
   ++ lib.optionals (runtimeInputs != [ ]) [
     "--prefix"
     "PATH"
@@ -59,6 +67,9 @@ assert lib.assertMsg (support.validName name)
   "Nushell application names must be safe path basenames; invalid name: ${builtins.toJSON name}";
 assert lib.assertMsg (support.validRelativePath entrypoint)
   "Nushell application entrypoints must be safe relative paths; invalid entrypoint: ${builtins.toJSON entrypoint}";
+assert lib.assertMsg (builtins.isList plugins) "Nushell application plugins must be a list";
+assert lib.assertMsg (lib.all validPlugin plugins)
+  "Nushell application plugins must be executable path strings";
 assert lib.assertMsg (invalidEnvironmentNames == [ ])
   "Nushell application environment variable names must use shell-compatible identifiers; invalid names: ${lib.concatStringsSep ", " invalidEnvironmentNames}";
 assert lib.assertMsg (invalidEnvironmentValues == [ ])

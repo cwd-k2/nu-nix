@@ -499,12 +499,15 @@ in
       '';
 
   application = pkgs.runCommand "nu-nix-application-test-result" { } ''
+    export HOME="$PWD/home"
+    mkdir -p "$HOME"
     ${integratedProjectExample.application}/bin/nu-nix-generated-example tester > output.json
     ${pkgs.nushell}/bin/nu --no-config-file --commands '
       let actual = (open output.json)
       let expected = {
         greeting: "hello tester"
         nix: "{\n  enabled = true;\n}"
+        evaluated: 42
         external: "Hello, world!"
         configured: "from-nix"
         host: "example-host"
@@ -776,6 +779,13 @@ in
         ];
       }).drvPath;
     assert evaluationFails
+      (self.lib.mkNuApplication {
+        inherit pkgs;
+        name = "invalid-plugin-application";
+        src = project.tests + "/bare-application";
+        plugins = "not-a-list";
+      }).drvPath;
+    assert evaluationFails
       (self.lib.mkNuSession {
         inherit pkgs;
         name = "invalid-session-publication";
@@ -820,6 +830,13 @@ in
         inherit pkgs;
         name = "invalid-command-script";
         scriptFile = [ (project.tests + "/nushell/run-command.nu") ];
+      }).drvPath;
+    assert evaluationFails
+      (self.lib.runNuCommand {
+        inherit pkgs;
+        name = "invalid-plugin-command";
+        scriptFile = project.tests + "/nushell/run-command.nu";
+        plugins = [ 42 ];
       }).drvPath;
     pkgs.runCommand "nu-nix-builder-validation" { } "touch $out";
 

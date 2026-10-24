@@ -95,6 +95,20 @@ Pure traversal limits and handle identity are tested without loading Nix. The
 resource layer also has a test destructor seam for malformed null returns and
 cleanup-on-error; end-to-end checks continue to exercise the real C API.
 
+## Builder runtime
+
+`mkNuApplication` and `runNuCommand` make modules available through
+`NU_LIB_DIRS` and load parser-visible plugins when the Nushell process starts.
+Their default `nuLibraries` includes the nu-nix package, so the native `nix`
+commands are loaded by default as well. Setting `nuLibraries = [ ]` also removes
+that default plugin; callers can select executable plugin paths independently
+through `plugins`.
+
+`runNuCommand` executes as a pure Nix build action with a fresh writable `HOME`
+under `TMPDIR`. This gives the embedded Nix runtime an isolated per-build state
+directory without exposing or depending on a user home. Packaged applications
+retain the caller's normal `HOME` because they execute outside the build action.
+
 ## Task model
 
 Both task builders produce a versioned record under `tasks.<system>`:
